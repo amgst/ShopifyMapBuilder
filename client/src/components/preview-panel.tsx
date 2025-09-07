@@ -163,12 +163,6 @@ export default function PreviewPanel() {
   return (
     <div className="flex-1 bg-muted/30 p-6 overflow-auto" data-testid="preview-panel">
       <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">Live Preview</h2>
-          <p className="text-muted-foreground">
-            See how your custom engraved map will look on the selected product.
-          </p>
-        </div>
 
         {/* Product Preview */}
         <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
@@ -196,13 +190,41 @@ export default function PreviewPanel() {
                 onMouseLeave={handleMouseUp}
                 onWheel={handleWheel}
               >
-                {/* Map Background */}
-                <div className="w-full h-full relative bg-gray-100">
-                  {/* Simplified map representation */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300">
-                    {/* River/water simulation */}
-                    <div className="absolute top-1/2 left-0 w-full h-8 bg-black transform -rotate-12 opacity-20"></div>
-                    <div className="absolute top-1/3 right-0 w-32 h-32 bg-black rounded-full opacity-10"></div>
+                {/* Map Background - Black and white where white = land, black = water */}
+                <div className="w-full h-full relative bg-white">
+                  {/* Land areas (white background with faux wood texture for engraving areas) */}
+                  <div className="absolute inset-0 bg-white">
+                    {/* Water areas (black) with faux wood background */}
+                    <div 
+                      className="absolute top-1/2 left-0 w-full h-12 transform -rotate-12"
+                      style={{
+                        background: state.productSettings?.material === 'wood' 
+                          ? 'linear-gradient(135deg, #92400e 0%, #451a03 50%, #1c0701 100%)' 
+                          : '#000000'
+                      }}
+                    ></div>
+                    <div 
+                      className="absolute top-1/4 right-8 w-40 h-40 rounded-full"
+                      style={{
+                        background: state.productSettings?.material === 'wood' 
+                          ? 'linear-gradient(135deg, #92400e 0%, #451a03 50%, #1c0701 100%)' 
+                          : '#000000'
+                      }}
+                    ></div>
+                    <div 
+                      className="absolute bottom-1/4 left-8 w-24 h-32 rounded-lg transform rotate-45"
+                      style={{
+                        background: state.productSettings?.material === 'wood' 
+                          ? 'linear-gradient(135deg, #92400e 0%, #451a03 50%, #1c0701 100%)' 
+                          : '#000000'
+                      }}
+                    ></div>
+                  </div>
+                  
+                  {/* Optional colored overlays for white areas */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/3 left-1/4 w-16 h-16 bg-green-200 opacity-30 rounded-full"></div>
+                    <div className="absolute bottom-1/3 right-1/4 w-20 h-12 bg-blue-200 opacity-30 rounded-lg"></div>
                   </div>
                   
                   {/* Location indicator */}
@@ -216,13 +238,15 @@ export default function PreviewPanel() {
                   {state.customizations.texts.map((text) => (
                     <div
                       key={text.id}
-                      className="absolute text-black font-medium cursor-move hover:bg-black/10 rounded px-1"
+                      className="absolute font-medium cursor-move hover:bg-black/10 rounded px-1"
                       style={{
                         left: `${text.x}%`,
                         top: `${text.y}%`,
                         fontSize: `${Math.max(8, text.fontSize * 0.5)}px`,
                         fontFamily: text.fontFamily,
-                        color: text.color,
+                        color: '#000000',
+                        textShadow: '0 0 2px #ffffff, 0 0 2px #ffffff, 0 0 2px #ffffff',
+                        WebkitTextStroke: '1px white',
                         transform: 'translate(-50%, -50%)',
                       }}
                       onMouseDown={(e) => handleMouseDown(e, 'text', text.id, text.x, text.y)}
@@ -253,6 +277,9 @@ export default function PreviewPanel() {
                         >
                           <IconComponent 
                             className="text-black"
+                            style={{
+                              filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)'
+                            }}
                             size={Math.max(12, icon.size * 0.5)}
                           />
                           
@@ -283,6 +310,9 @@ export default function PreviewPanel() {
                       >
                         <CompassComponent 
                           className="text-black"
+                          style={{
+                            filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)'
+                          }}
                           size={Math.max(16, state.customizations.compass.size * 0.5)}
                         />
                       </div>
