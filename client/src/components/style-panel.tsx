@@ -17,15 +17,55 @@ const sizeOptions = [
 ];
 
 const materialOptions = [
-  { id: "wood", label: "Premium Wood", description: "Natural wood finish" },
-  { id: "metal", label: "Brushed Metal", description: "Modern metal finish" },
+  { 
+    id: "oak", 
+    label: "Natural Oak", 
+    description: "Rich grain texture with warm honey tones",
+    texture: "wood-grain",
+    finish: "Natural matte finish"
+  },
+  { 
+    id: "walnut", 
+    label: "Dark Walnut", 
+    description: "Deep chocolate brown with elegant grain",
+    texture: "wood-grain-dark",
+    finish: "Satin protective coating"
+  },
+  { 
+    id: "bamboo", 
+    label: "Eco Bamboo", 
+    description: "Sustainable light wood with linear grain",
+    texture: "bamboo",
+    finish: "Natural eco-friendly finish"
+  },
+  { 
+    id: "aluminum", 
+    label: "Brushed Aluminum", 
+    description: "Lightweight with subtle metallic sheen",
+    texture: "brushed-metal",
+    finish: "Anodized coating"
+  },
+  { 
+    id: "steel", 
+    label: "Stainless Steel", 
+    description: "Premium mirror-like finish",
+    texture: "polished-metal",
+    finish: "Rust-resistant coating"
+  },
+  { 
+    id: "brass", 
+    label: "Antique Brass", 
+    description: "Vintage golden finish with character",
+    texture: "antique-metal",
+    finish: "Aged patina effect"
+  },
 ];
 
 export default function StylePanel() {
   const { state, updateProductSettings } = useMapBuilder();
   const [selectedShape, setSelectedShape] = useState<string>(state.productSettings?.shape || "rectangle");
   const [selectedSize, setSelectedSize] = useState<string>("standard");
-  const [selectedMaterial, setSelectedMaterial] = useState<string>(state.productSettings?.material || "wood");
+  const [selectedMaterial, setSelectedMaterial] = useState<string>(state.productSettings?.material || "oak");
 
   const handleShapeChange = (shapeId: string) => {
     setSelectedShape(shapeId);
@@ -138,8 +178,8 @@ export default function StylePanel() {
 
         {/* Material */}
         <div>
-          <h3 className="font-medium mb-3">Material</h3>
-          <div className="space-y-2">
+          <h3 className="font-medium mb-3">Material & Finish</h3>
+          <div className="grid grid-cols-1 gap-3">
             {materialOptions.map((material) => {
               const isSelected = selectedMaterial === material.id;
               
@@ -148,21 +188,79 @@ export default function StylePanel() {
                   key={material.id}
                   variant={isSelected ? "default" : "outline"}
                   className={cn(
-                    "w-full p-3 text-left h-auto",
-                    isSelected && "bg-primary/10 border-primary"
+                    "w-full p-4 text-left h-auto group hover:bg-accent/50 transition-all duration-200",
+                    isSelected && "bg-primary/10 border-primary ring-2 ring-primary/20"
                   )}
                   onClick={() => handleMaterialChange(material.id)}
                   data-testid={`material-${material.id}`}
                 >
-                  <div className="flex items-center">
-                    <div className={cn(
-                      "w-6 h-6 rounded mr-3",
-                      material.id === "wood" && "bg-gradient-to-br from-amber-700 to-amber-900",
-                      material.id === "metal" && "bg-gradient-to-br from-gray-300 to-gray-500"
-                    )} />
-                    <div>
-                      <div className="font-medium">{material.label}</div>
-                      <div className="text-sm text-muted-foreground">{material.description}</div>
+                  <div className="flex items-start space-x-4">
+                    {/* Material Sample */}
+                    <div className="relative flex-shrink-0">
+                      <div className={cn(
+                        "w-12 h-12 rounded-lg border-2 border-border/20 relative overflow-hidden",
+                        "group-hover:scale-105 transition-transform duration-200"
+                      )}>
+                        {/* Base material color/texture */}
+                        <div className={cn(
+                          "absolute inset-0",
+                          // Wood materials
+                          material.id === "oak" && "bg-gradient-to-br from-amber-200 via-amber-300 to-amber-600",
+                          material.id === "walnut" && "bg-gradient-to-br from-amber-800 via-amber-900 to-stone-900",
+                          material.id === "bamboo" && "bg-gradient-to-br from-yellow-100 via-yellow-200 to-amber-300",
+                          // Metal materials
+                          material.id === "aluminum" && "bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400",
+                          material.id === "steel" && "bg-gradient-to-br from-slate-300 via-slate-100 to-slate-300",
+                          material.id === "brass" && "bg-gradient-to-br from-yellow-600 via-amber-500 to-yellow-700"
+                        )} />
+                        
+                        {/* Texture overlay */}
+                        <div className={cn(
+                          "absolute inset-0 opacity-40",
+                          // Wood grain patterns
+                          (material.id === "oak" || material.id === "walnut" || material.id === "bamboo") && 
+                          "bg-gradient-to-r from-transparent via-black/10 to-transparent",
+                          // Metal brush patterns
+                          (material.id === "aluminum" || material.id === "steel") && 
+                          "bg-gradient-to-r from-transparent via-white/20 to-transparent",
+                          // Antique patina
+                          material.id === "brass" && "bg-gradient-to-br from-black/10 via-transparent to-black/20"
+                        )} />
+                        
+                        {/* Shine/reflection effect */}
+                        <div className={cn(
+                          "absolute top-1 left-1 right-1 h-3 rounded-t-lg opacity-30",
+                          material.id === "steel" && "bg-gradient-to-r from-transparent via-white to-transparent",
+                          material.id === "aluminum" && "bg-gradient-to-r from-transparent via-white/60 to-transparent",
+                          material.id === "brass" && "bg-gradient-to-r from-transparent via-yellow-200/60 to-transparent"
+                        )} />
+                      </div>
+                      
+                      {/* Selection indicator */}
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Material Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-semibold text-sm">{material.label}</h4>
+                        {material.id === "bamboo" && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            Eco-Friendly
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+                        {material.description}
+                      </p>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full mr-2" />
+                        {material.finish}
+                      </div>
                     </div>
                   </div>
                 </Button>
@@ -172,15 +270,32 @@ export default function StylePanel() {
         </div>
 
         {/* Current Selection Summary */}
-        <div className="bg-muted rounded-lg p-4">
-          <h4 className="font-medium mb-2">Current Selection</h4>
-          <div className="space-y-1 text-sm">
-            <p><strong>Shape:</strong> {productShapes.find(s => s.id === selectedShape)?.label}</p>
-            <p><strong>Size:</strong> {sizeOptions.find(s => s.id === selectedSize)?.label}</p>
-            <p><strong>Material:</strong> {materialOptions.find(m => m.id === selectedMaterial)?.label}</p>
-            <p className="pt-2 border-t border-border font-medium">
-              <strong>Price:</strong> ${sizeOptions.find(s => s.id === selectedSize)?.price}
-            </p>
+        <div className="bg-gradient-to-br from-muted/50 to-muted rounded-xl p-5 border border-border/50">
+          <h4 className="font-semibold mb-3 flex items-center">
+            <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
+            Your Selection
+          </h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Shape:</span>
+              <span className="font-medium">{productShapes.find(s => s.id === selectedShape)?.label}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Size:</span>
+              <span className="font-medium">{sizeOptions.find(s => s.id === selectedSize)?.label}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Material:</span>
+              <span className="font-medium">{materialOptions.find(m => m.id === selectedMaterial)?.label}</span>
+            </div>
+            <div className="pt-3 border-t border-border/30">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-base">Total Price:</span>
+                <span className="font-bold text-lg text-primary">
+                  ${sizeOptions.find(s => s.id === selectedSize)?.price}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
