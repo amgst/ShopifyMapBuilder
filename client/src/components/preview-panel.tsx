@@ -233,8 +233,7 @@ export default function PreviewPanel() {
                         fontSize: `${Math.max(8, text.fontSize * 0.6)}px`,
                         fontFamily: text.fontFamily,
                         color: '#000000',
-                        textShadow: '0 0 2px #ffffff, 0 0 2px #ffffff, 0 0 2px #ffffff',
-                        WebkitTextStroke: '1px white',
+                        fontWeight: text.fontFamily.includes('Bold') ? 'bold' : 'normal',
                         transform: 'translate(-50%, -50%)',
                       }}
                       onMouseDown={(e) => handleMouseDown(e, 'text', text.id, text.x, text.y)}
