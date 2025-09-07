@@ -359,9 +359,13 @@ export default function PreviewPanel() {
             {/* Bottom Material Bar */}
             <div 
               className={`
-                w-full h-4 
-                ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-800 to-amber-950' : 'bg-gradient-to-br from-gray-400 to-gray-600'}
-                shadow-sm
+                w-full h-4 shadow-sm
+                ${state.productSettings?.material === 'oak' ? 'bg-gradient-to-br from-amber-700 to-amber-800' : ''}
+                ${state.productSettings?.material === 'walnut' ? 'bg-gradient-to-br from-amber-900 to-stone-900' : ''}
+                ${state.productSettings?.material === 'bamboo' ? 'bg-gradient-to-br from-yellow-200 to-amber-400' : ''}
+                ${state.productSettings?.material === 'aluminum' ? 'bg-gradient-to-br from-slate-300 to-slate-500' : ''}
+                ${state.productSettings?.material === 'brass' ? 'bg-gradient-to-br from-yellow-700 to-amber-600' : ''}
+                ${!state.productSettings?.material ? 'bg-gradient-to-br from-amber-700 to-amber-800' : ''}
               `}
             />
           </div>
