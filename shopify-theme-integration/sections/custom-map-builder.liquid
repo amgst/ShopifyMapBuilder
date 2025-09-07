@@ -1,0 +1,193 @@
+{% comment %}
+Custom Map Builder Section
+File: sections/custom-map-builder.liquid
+{% endcomment %}
+
+<div class="map-builder-section" data-section-id="{{ section.id }}">
+  <div class="container">
+    {% if section.settings.heading != blank %}
+      <h2 class="map-builder-heading">{{ section.settings.heading }}</h2>
+    {% endif %}
+    
+    {% if section.settings.description != blank %}
+      <div class="map-builder-description">
+        {{ section.settings.description }}
+      </div>
+    {% endif %}
+
+    <!-- Map Builder App Container -->
+    <div id="shopify-map-builder" 
+         data-store="{{ shop.permanent_domain }}"
+         data-variant-id="{{ section.settings.product_variant_id }}"
+         style="min-height: 600px;">
+      <div class="loading-placeholder">
+        <p>Loading Map Builder...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Load the Map Builder App -->
+<script>
+  (function() {
+    // Only load if not already loaded
+    if (window.MapBuilderLoaded) return;
+    window.MapBuilderLoaded = true;
+
+    // Create iframe to embed the Vercel app
+    const container = document.getElementById('shopify-map-builder');
+    if (!container) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.src = '{{ section.settings.app_url }}?embedded=true&store=' + encodeURIComponent('{{ shop.permanent_domain }}');
+    iframe.style.width = '100%';
+    iframe.style.height = '800px';
+    iframe.style.border = 'none';
+    iframe.style.borderRadius = '8px';
+    iframe.allow = 'geolocation';
+    
+    // Replace loading placeholder
+    container.innerHTML = '';
+    container.appendChild(iframe);
+
+    // Handle messages from the embedded app
+    window.addEventListener('message', function(event) {
+      if (event.origin !== '{{ section.settings.app_url | split: '/' | slice: 0, 3 | join: '/' }}') return;
+      
+      if (event.data.type === 'MAP_ADDED_TO_CART') {
+        // Optionally redirect to cart or show success message
+        if ({{ section.settings.redirect_to_cart | json }}) {
+          window.location.href = '/cart';
+        } else {
+          // Show success message
+          showCartSuccess(event.data.cartUrl);
+        }
+      }
+    });
+
+    function showCartSuccess(cartUrl) {
+      const successMsg = document.createElement('div');
+      successMsg.className = 'map-builder-success';
+      successMsg.innerHTML = `
+        <div class="alert alert-success">
+          <p>✅ Custom map added to cart!</p>
+          <a href="${cartUrl}" class="btn btn-primary">View Cart</a>
+        </div>
+      `;
+      container.parentNode.insertBefore(successMsg, container.nextSibling);
+      
+      // Remove after 5 seconds
+      setTimeout(() => successMsg.remove(), 5000);
+    }
+  })();
+</script>
+
+<style>
+  .map-builder-section {
+    padding: 40px 0;
+  }
+  
+  .map-builder-heading {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 2rem;
+    font-weight: bold;
+  }
+  
+  .map-builder-description {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #666;
+  }
+  
+  .loading-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .map-builder-success {
+    margin: 20px 0;
+  }
+  
+  .alert {
+    padding: 15px;
+    border-radius: 4px;
+    text-align: center;
+  }
+  
+  .alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-top: 10px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  
+  .btn-primary {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #0056b3;
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Custom Map Builder",
+  "tag": "section",
+  "class": "map-builder-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Section Heading",
+      "default": "Create Your Custom Map"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Design a personalized map with your favorite location and custom details."
+    },
+    {
+      "type": "url",
+      "id": "app_url",
+      "label": "Map Builder App URL",
+      "default": "https://shopify-map-builder.vercel.app",
+      "info": "Your Vercel deployment URL"
+    },
+    {
+      "type": "text",
+      "id": "product_variant_id",
+      "label": "Product Variant ID",
+      "default": "gid://shopify/ProductVariant/41068385009711",
+      "info": "The product variant ID for custom maps"
+    },
+    {
+      "type": "checkbox",
+      "id": "redirect_to_cart",
+      "label": "Redirect to cart after adding map",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Map Builder",
+      "category": "Custom"
+    }
+  ]
+}
+{% endschema %}

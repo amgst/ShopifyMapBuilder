@@ -1,0 +1,273 @@
+{% comment %}
+Custom Map Product Template
+File: templates/product.custom-map.liquid
+{% endcomment %}
+
+<div class="product-custom-map">
+  <div class="container">
+    <div class="product-header">
+      <h1 class="product-title">{{ product.title }}</h1>
+      {% if product.description != blank %}
+        <div class="product-description">
+          {{ product.description }}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Map Builder Integration -->
+    <div class="map-builder-container">
+      <iframe 
+        id="map-builder-iframe"
+        src="https://shopify-map-builder.vercel.app?product={{ product.selected_or_first_available_variant.id }}&store={{ shop.permanent_domain }}"
+        style="width: 100%; height: 800px; border: none; border-radius: 12px;"
+        allow="geolocation">
+      </iframe>
+    </div>
+
+    <!-- Product Information Sidebar -->
+    <div class="product-sidebar">
+      <div class="price-section">
+        <div class="price">
+          {% if product.compare_at_price > product.price %}
+            <span class="price-compare">${{ product.compare_at_price | money_without_currency }}</span>
+          {% endif %}
+          <span class="price-current">${{ product.price | money_without_currency }}</span>
+        </div>
+      </div>
+
+      <div class="product-features">
+        <h3>What's Included:</h3>
+        <ul>
+          <li>✨ Custom location selection</li>
+          <li>📝 Personalized text and labels</li>
+          <li>🧭 Optional compass decoration</li>
+          <li>🎨 Multiple style options</li>
+          <li>📏 Various size options</li>
+          <li>🖼️ High-quality print ready (300 DPI)</li>
+        </ul>
+      </div>
+
+      <div class="guarantee-section">
+        <h4>🛡️ Our Guarantee</h4>
+        <p>30-day money back guarantee. Free shipping on orders over $50.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Handle communication with the embedded map builder
+window.addEventListener('message', function(event) {
+  if (event.origin !== 'https://shopify-map-builder.vercel.app') return;
+  
+  switch(event.data.type) {
+    case 'MAP_ADDED_TO_CART':
+      handleCartSuccess(event.data);
+      break;
+    case 'PRICE_UPDATED':
+      updateProductPrice(event.data.price);
+      break;
+    case 'RESIZE_IFRAME':
+      resizeIframe(event.data.height);
+      break;
+  }
+});
+
+function handleCartSuccess(data) {
+  // Show success message
+  showNotification('✅ Custom map added to cart!', 'success');
+  
+  // Update cart count if theme supports it
+  if (window.theme && window.theme.updateCartCount) {
+    window.theme.updateCartCount();
+  }
+  
+  // Optional: redirect to cart after 2 seconds
+  setTimeout(() => {
+    if (confirm('Would you like to view your cart now?')) {
+      window.location.href = data.cartUrl || '/cart';
+    }
+  }, 2000);
+}
+
+function updateProductPrice(newPrice) {
+  const priceElement = document.querySelector('.price-current');
+  if (priceElement) {
+    priceElement.textContent = '$' + newPrice.toFixed(2);
+  }
+}
+
+function resizeIframe(height) {
+  const iframe = document.getElementById('map-builder-iframe');
+  if (iframe && height) {
+    iframe.style.height = height + 'px';
+  }
+}
+
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <span>${message}</span>
+      <button onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+</script>
+
+<style>
+.product-custom-map {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.product-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.product-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.product-description {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.map-builder-container {
+  margin: 40px 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-sidebar {
+  background: #f8f9fa;
+  padding: 30px;
+  border-radius: 12px;
+  margin-top: 40px;
+}
+
+.price-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.price-current {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #28a745;
+}
+
+.price-compare {
+  font-size: 1.2rem;
+  color: #999;
+  text-decoration: line-through;
+  margin-right: 10px;
+}
+
+.product-features {
+  margin-bottom: 30px;
+}
+
+.product-features h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.product-features ul {
+  list-style: none;
+  padding: 0;
+}
+
+.product-features li {
+  padding: 8px 0;
+  font-size: 1rem;
+}
+
+.guarantee-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.guarantee-section h4 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  min-width: 300px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+}
+
+.notification-success .notification-content {
+  background: #28a745;
+}
+
+.notification-info .notification-content {
+  background: #17a2b8;
+}
+
+.notification button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 15px;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .product-custom-map {
+    padding: 10px;
+  }
+  
+  .product-title {
+    font-size: 2rem;
+  }
+  
+  .map-builder-container iframe {
+    height: 600px;
+  }
+}
+</style>
