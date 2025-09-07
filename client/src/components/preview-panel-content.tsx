@@ -57,16 +57,16 @@ export default function PreviewPanelContent() {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button 
-            className="w-full" 
+            className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-4 px-6 rounded-lg text-base transition-all duration-200 shadow-lg hover:shadow-xl" 
             size="lg"
             data-testid="add-to-cart-button"
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
+            <ShoppingCart className="h-5 w-5 mr-3" />
+            Add to Cart • ${currentSize.price}
           </Button>
           <Button 
             variant="outline" 
-            className="w-full" 
+            className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-3 px-6 rounded-lg text-base transition-all duration-200" 
             size="lg"
             data-testid="save-design-button"
           >
