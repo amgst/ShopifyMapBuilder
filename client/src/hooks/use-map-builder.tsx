@@ -66,6 +66,7 @@ type MapBuilderAction =
   | { type: 'UPDATE_COMPASS_POSITION'; payload: { x: number; y: number } }
   | { type: 'UPDATE_PRODUCT_SETTINGS'; payload: ProductSettings }
   | { type: 'UPDATE_MAP_ZOOM'; payload: number }
+  | { type: 'SET_AUTO_LOCATION_TEXT'; payload: { city: string; country: string; coordinates: string } }
   | { type: 'RESET_STATE' };
 
 const initialState: MapBuilderState = {
@@ -228,6 +229,65 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
           : undefined,
       };
 
+    case 'SET_AUTO_LOCATION_TEXT':
+      // Remove existing location texts and add new ones
+      const filteredTexts = state.customizations.texts.filter(text => 
+        !text.content.includes('°N') && 
+        !text.content.includes('°E') &&
+        text.id !== 'auto-city' &&
+        text.id !== 'auto-country' &&
+        text.id !== 'auto-coordinates'
+      );
+      
+      const newLocationTexts: TextElement[] = [];
+      
+      // Add city text
+      if (action.payload.city) {
+        newLocationTexts.push({
+          id: 'auto-city',
+          content: action.payload.city,
+          x: 50,
+          y: 35,
+          fontSize: 32,
+          fontFamily: 'Inter Bold',
+          color: 'black'
+        });
+      }
+      
+      // Add country text
+      if (action.payload.country) {
+        newLocationTexts.push({
+          id: 'auto-country',
+          content: action.payload.country,
+          x: 50,
+          y: 45,
+          fontSize: 28,
+          fontFamily: 'Inter Bold',
+          color: 'black'
+        });
+      }
+      
+      // Add coordinates text
+      if (action.payload.coordinates) {
+        newLocationTexts.push({
+          id: 'auto-coordinates',
+          content: action.payload.coordinates,
+          x: 50,
+          y: 65,
+          fontSize: 16,
+          fontFamily: 'Inter Regular',
+          color: 'black'
+        });
+      }
+      
+      return {
+        ...state,
+        customizations: {
+          ...state.customizations,
+          texts: [...filteredTexts, ...newLocationTexts],
+        },
+      };
+
     case 'RESET_STATE':
       return initialState;
 
@@ -251,6 +311,7 @@ interface MapBuilderContextType {
   updateCompassPosition: (x: number, y: number) => void;
   updateProductSettings: (settings: ProductSettings) => void;
   updateMapZoom: (zoom: number) => void;
+  setAutoLocationText: (locationData: { city: string; country: string; coordinates: string }) => void;
   resetState: () => void;
 }
 
@@ -259,8 +320,23 @@ const MapBuilderContext = createContext<MapBuilderContextType | undefined>(undef
 export function MapBuilderProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(mapBuilderReducer, initialState);
 
-  const updateLocation = (location: Location) => {
+  const updateLocation = async (location: Location) => {
     dispatch({ type: 'UPDATE_LOCATION', payload: location });
+    
+    // Automatically fetch and set location text
+    try {
+      const response = await fetch(`/api/reverse-geocode?lat=${location.lat}&lng=${location.lng}`);
+      if (response.ok) {
+        const locationData = await response.json();
+        setAutoLocationText({
+          city: locationData.city,
+          country: locationData.country,
+          coordinates: locationData.coordinates
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch location details:', error);
+    }
   };
 
   const addText = (text: Omit<TextElement, 'id'>) => {
@@ -311,6 +387,10 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_MAP_ZOOM', payload: zoom });
   };
 
+  const setAutoLocationText = (locationData: { city: string; country: string; coordinates: string }) => {
+    dispatch({ type: 'SET_AUTO_LOCATION_TEXT', payload: locationData });
+  };
+
   const resetState = () => {
     dispatch({ type: 'RESET_STATE' });
   };
@@ -330,6 +410,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     updateCompassPosition,
     updateProductSettings,
     updateMapZoom,
+    setAutoLocationText,
     resetState,
   };
 
