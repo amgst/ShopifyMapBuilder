@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, ReactNode } from "react";
+import { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import { generateId } from "@/lib/map-utils";
 
 interface Location {
@@ -320,6 +320,34 @@ const MapBuilderContext = createContext<MapBuilderContextType | undefined>(undef
 export function MapBuilderProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(mapBuilderReducer, initialState);
 
+  const setAutoLocationText = (locationData: { city: string; country: string; coordinates: string }) => {
+    dispatch({ type: 'SET_AUTO_LOCATION_TEXT', payload: locationData });
+  };
+
+  // Fetch location data for initial location on mount
+  useEffect(() => {
+    if (state.location) {
+      const fetchInitialLocationData = async () => {
+        try {
+          const response = await fetch(`/api/reverse-geocode?lat=${state.location!.lat}&lng=${state.location!.lng}`);
+          if (response.ok) {
+            const locationData = await response.json();
+            console.log('Initial location data received:', locationData);
+            setAutoLocationText({
+              city: locationData.city,
+              country: locationData.country,
+              coordinates: locationData.coordinates
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch initial location details:', error);
+        }
+      };
+      
+      fetchInitialLocationData();
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
   const updateLocation = async (location: Location) => {
     dispatch({ type: 'UPDATE_LOCATION', payload: location });
     
@@ -328,6 +356,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`/api/reverse-geocode?lat=${location.lat}&lng=${location.lng}`);
       if (response.ok) {
         const locationData = await response.json();
+        console.log('Location data received:', locationData);
         setAutoLocationText({
           city: locationData.city,
           country: locationData.country,
@@ -385,10 +414,6 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
 
   const updateMapZoom = (zoom: number) => {
     dispatch({ type: 'UPDATE_MAP_ZOOM', payload: zoom });
-  };
-
-  const setAutoLocationText = (locationData: { city: string; country: string; coordinates: string }) => {
-    dispatch({ type: 'SET_AUTO_LOCATION_TEXT', payload: locationData });
   };
 
   const resetState = () => {
