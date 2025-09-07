@@ -16,25 +16,44 @@ export interface ExportResult {
 
 /**
  * Converts an image to true black and white (no gradients)
+ * White = land/text/icons, Black = water/engraved areas
  */
 function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const ctx = canvas.getContext('2d')!;
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
 
-  // Convert to true black and white with threshold
-  const threshold = 128; // Luminance threshold
+  // Enhanced threshold logic for better map conversion
+  const threshold = 140; // Slightly higher threshold for cleaner separation
   
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
+    const a = data[i + 3];
     
-    // Calculate luminance
+    // Skip transparent pixels
+    if (a === 0) continue;
+    
+    // Calculate weighted luminance (optimized for map colors)
     const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
     
-    // Apply threshold: white for land/text/icons, black for water/engraved areas
-    const value = luminance > threshold ? 255 : 0;
+    // Enhanced conversion logic for map elements:
+    // - Text and icons should be white (not engraved)
+    // - Water areas should be black (engraved)
+    // - Land should be white (not engraved)
+    let value: number;
+    
+    // Check if this is likely a text/icon element (high contrast)
+    const isHighContrast = (r > 200 && g > 200 && b > 200) || (r < 50 && g < 50 && b < 50);
+    
+    if (isHighContrast) {
+      // For high contrast elements (text/icons), ensure they become white
+      value = luminance > 50 ? 255 : 0;
+    } else {
+      // For map elements, use standard threshold
+      value = luminance > threshold ? 255 : 0;
+    }
     
     data[i] = value;     // Red
     data[i + 1] = value; // Green
@@ -93,15 +112,21 @@ export async function exportMapImage(
   options: ImageExportOptions = {}
 ): Promise<ExportResult> {
   const {
-    orderId = 'CustomMap',
+    orderId = `Order${Date.now()}`,
     targetSize = 15, // Target 15MB
     minSize = 8,     // Minimum 8MB
     maxSize = 30     // Maximum 30MB
   } = options;
 
   try {
-    // Capture the element at high resolution for 300 DPI
-    const scale = 4; // Scale factor for high resolution
+    // Wait for any pending renders
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Calculate scale for 300 DPI output
+    // Standard screen DPI is ~96, so scale factor for 300 DPI is ~3.125
+    const targetDPI = 300;
+    const screenDPI = 96;
+    const scale = targetDPI / screenDPI;
     
     const canvas = await html2canvas(element, {
       scale: scale,
@@ -111,25 +136,43 @@ export async function exportMapImage(
       logging: false,
       width: element.offsetWidth,
       height: element.offsetHeight,
+      removeContainer: true,
       onclone: (clonedDoc) => {
-        // Remove any interactive elements that shouldn't be in the final image
-        const clonedElement = clonedDoc.querySelector('[data-html2canvas-ignore]');
-        if (clonedElement) {
-          clonedElement.remove();
-        }
+        // Clean up the cloned document for export
+        const clonedElement = clonedDoc.body;
         
-        // Remove zoom controls and other UI elements
-        const zoomControls = clonedDoc.querySelectorAll('.absolute.top-4.right-4');
+        // Remove zoom controls
+        const zoomControls = clonedElement.querySelectorAll('[data-testid*="zoom"], .absolute.top-4.right-4');
         zoomControls.forEach(el => el.remove());
         
-        // Remove hover effects and resize handles
-        const resizeHandles = clonedDoc.querySelectorAll('.cursor-se-resize');
-        resizeHandles.forEach(el => el.remove());
+        // Remove resize handles and interactive elements
+        const interactiveElements = clonedElement.querySelectorAll('.cursor-se-resize, .hover\\:bg-black\\/10, [data-testid*="resize"]');
+        interactiveElements.forEach(el => el.remove());
         
-        // Remove any hover states
-        const hoverElements = clonedDoc.querySelectorAll('.hover\\:bg-black\\/10');
-        hoverElements.forEach(el => {
-          el.classList.remove('hover:bg-black/10');
+        // Remove any overlay UI elements
+        const overlays = clonedElement.querySelectorAll('.absolute.top-4.left-4, .absolute.bottom-2.left-2');
+        overlays.forEach(el => {
+          // Keep location info but remove zoom level indicators
+          if (el.textContent?.includes('Zoom:')) {
+            el.remove();
+          }
+        });
+        
+        // Ensure high contrast for text elements
+        const textElements = clonedElement.querySelectorAll('[data-testid*="draggable-text"]');
+        textElements.forEach(el => {
+          const htmlEl = el as HTMLElement;
+          htmlEl.style.color = '#000000';
+          htmlEl.style.textShadow = '2px 2px 4px #ffffff, -2px -2px 4px #ffffff, 2px -2px 4px #ffffff, -2px 2px 4px #ffffff';
+          htmlEl.style.fontWeight = 'bold';
+        });
+        
+        // Ensure high contrast for icons
+        const iconElements = clonedElement.querySelectorAll('[data-testid*="draggable-icon"] svg, [data-testid*="draggable-compass"] svg');
+        iconElements.forEach(el => {
+          const htmlEl = el as HTMLElement;
+          htmlEl.style.color = '#000000';
+          htmlEl.style.filter = 'drop-shadow(2px 2px 4px #ffffff) drop-shadow(-2px -2px 4px #ffffff) drop-shadow(2px -2px 4px #ffffff) drop-shadow(-2px 2px 4px #ffffff)';
         });
       }
     });
@@ -147,7 +190,7 @@ export async function exportMapImage(
 
     // Generate filename with order ID
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `Order${orderId}_Map_${timestamp}.jpeg`;
+    const filename = `${orderId}_Map_${timestamp}.jpeg`;
 
     // Create data URL for preview
     const dataUrl = bwCanvas.toDataURL('image/jpeg', quality);
@@ -162,7 +205,7 @@ export async function exportMapImage(
     };
   } catch (error) {
     console.error('Error exporting map image:', error);
-    throw new Error('Failed to export map image. Please try again.');
+    throw new Error('Failed to export map image. Please make sure the map is fully loaded and try again.');
   }
 }
 
