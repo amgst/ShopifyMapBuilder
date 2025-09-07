@@ -167,11 +167,11 @@ export default function PreviewPanel() {
 
         {/* Product Preview */}
         <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-          <div className="relative">
+          <div className="relative flex justify-center">
             {/* Product Base */}
             <div 
               className={`
-                w-full relative overflow-hidden
+                w-[70%] relative overflow-hidden
                 ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
                 ${state.productSettings?.shape === 'circle' ? 'rounded-full aspect-square' : 'rounded-lg'}
                 ${state.productSettings?.shape === 'rectangle' ? 'aspect-[2/3]' : ''}
