@@ -4,10 +4,10 @@ import { useMapBuilder } from "@/hooks/use-map-builder";
 import { cn } from "@/lib/utils";
 
 const productShapes = [
-  { id: "rectangle", label: "Rectangle", aspectRatio: 2.62 },
-  { id: "circle", label: "Circle", aspectRatio: 1 },
-  { id: "stick", label: "Stick", aspectRatio: 4 },
-  { id: "twig", label: "Twig", aspectRatio: 6 },
+  { id: "rectangle", label: "Rectangle", aspectRatio: 1.5, description: "Standard rectangular maps" },
+  { id: "stick", label: "Stick", aspectRatio: 1.2, description: "Small rectangles" },
+  { id: "twig", label: "Twig", aspectRatio: 3, description: "Thin, long rectangles" },
+  { id: "circle", label: "Circle", aspectRatio: 1, description: "For ornaments and candles" },
 ] as const;
 
 const sizeOptions = [
@@ -90,12 +90,15 @@ export default function StylePanel() {
                 >
                   <div className={cn(
                     "bg-foreground/20 mb-2",
-                    shape.id === "rectangle" && "w-16 h-10 rounded",
+                    shape.id === "rectangle" && "w-16 h-11 rounded",
+                    shape.id === "stick" && "w-12 h-10 rounded",
+                    shape.id === "twig" && "w-20 h-7 rounded",
                     shape.id === "circle" && "w-10 h-10 rounded-full",
-                    shape.id === "stick" && "w-20 h-6 rounded",
-                    shape.id === "twig" && "w-24 h-4 rounded",
                   )} />
-                  <span className="text-sm font-medium">{shape.label}</span>
+                  <div className="text-center">
+                    <span className="text-sm font-medium">{shape.label}</span>
+                    <p className="text-xs text-muted-foreground mt-1">{shape.description}</p>
+                  </div>
                 </Button>
               );
             })}

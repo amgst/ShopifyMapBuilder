@@ -120,14 +120,23 @@ export default function PreviewPanel() {
         <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
           <div className="relative">
             {/* Product Base */}
-            <div className={`
-              w-full aspect-[2.62/1] relative rounded-lg overflow-hidden
-              ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
-            `}>
+            <div 
+              className={`
+                w-full relative overflow-hidden
+                ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
+                ${state.productSettings?.shape === 'circle' ? 'rounded-full aspect-square' : 'rounded-lg'}
+                ${state.productSettings?.shape === 'rectangle' ? 'aspect-[3/2]' : ''}
+                ${state.productSettings?.shape === 'stick' ? 'aspect-[6/5]' : ''}
+                ${state.productSettings?.shape === 'twig' ? 'aspect-[3/1]' : ''}
+                ${!state.productSettings?.shape && 'aspect-[3/2]'}
+              `}
+            >
               {/* Map Engraved Area */}
               <div 
                 ref={previewRef}
-                className="absolute inset-4 bg-white rounded shadow-inner overflow-hidden"
+                className={`absolute inset-4 bg-white shadow-inner overflow-hidden ${
+                  state.productSettings?.shape === 'circle' ? 'rounded-full' : 'rounded'
+                }`}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
