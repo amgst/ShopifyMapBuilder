@@ -82,7 +82,7 @@ export default function StylePanel() {
                   key={shape.id}
                   variant={isSelected ? "default" : "outline"}
                   className={cn(
-                    "p-4 h-auto flex flex-col items-center space-y-2",
+                    "p-4 h-auto flex flex-col items-center space-y-2 min-h-[120px]",
                     isSelected && "bg-primary text-primary-foreground border-primary"
                   )}
                   onClick={() => handleShapeChange(shape.id)}
@@ -95,9 +95,9 @@ export default function StylePanel() {
                     shape.id === "twig" && "w-20 h-7 rounded",
                     shape.id === "circle" && "w-10 h-10 rounded-full",
                   )} />
-                  <div className="text-center">
-                    <span className="text-sm font-medium">{shape.label}</span>
-                    <p className="text-xs text-muted-foreground mt-1">{shape.description}</p>
+                  <div className="text-center w-full">
+                    <span className="text-sm font-medium block">{shape.label}</span>
+                    <p className="text-xs text-muted-foreground mt-1 leading-tight break-words">{shape.description}</p>
                   </div>
                 </Button>
               );
