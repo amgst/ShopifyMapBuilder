@@ -27,10 +27,49 @@ export default function LocationPanel() {
     setSearchQuery(place.name);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          updateLocation({
+            lat: latitude,
+            lng: longitude,
+            zoom: 15,
+            searchQuery: `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
+          });
+          setSearchQuery('Current Location');
+        },
+        (error) => {
+          console.error('Error getting current location:', error);
+          alert('Unable to access your location. Please make sure location services are enabled.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by this browser.');
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement geocoding search
-    console.log("Searching for:", searchQuery);
+    if (!searchQuery.trim()) return;
+    
+    try {
+      const response = await fetch(`/api/search/locations?q=${encodeURIComponent(searchQuery)}`);
+      const results = await response.json();
+      
+      if (results.length > 0) {
+        const firstResult = results[0];
+        updateLocation({
+          lat: firstResult.lat,
+          lng: firstResult.lng,
+          zoom: 12,
+          searchQuery: firstResult.name,
+        });
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+    }
   };
 
   return (
@@ -58,7 +97,13 @@ export default function LocationPanel() {
             />
           </div>
         </form>
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-muted-foreground"
+          onClick={handleCurrentLocation}
+          data-testid="use-current-location"
+        >
           <Navigation className="h-4 w-4 mr-2" />
           Use your current position
         </Button>

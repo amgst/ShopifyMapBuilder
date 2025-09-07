@@ -86,28 +86,8 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
       markerSource.addFeature(marker);
     });
 
-    // Handle zoom and pan events
-    map.getView().on('change:resolution', () => {
-      if (state.location) {
-        updateLocation({
-          ...state.location,
-          zoom: map.getView().getZoom() || 12,
-        });
-      }
-    });
-
-    map.getView().on('change:center', () => {
-      const center = map.getView().getCenter();
-      if (center && state.location) {
-        const [lng, lat] = toLonLat(center);
-        updateLocation({
-          ...state.location,
-          lat,
-          lng,
-          zoom: map.getView().getZoom() || 12,
-        });
-      }
-    });
+    // Note: Removed automatic view change handlers to prevent infinite update loops
+    // The map will only update location when users explicitly click on it
 
     olMapRef.current = map;
 
@@ -117,7 +97,7 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
         olMapRef.current = null;
       }
     };
-  }, []);
+  }, [updateLocation]);
 
   // Update map when location changes from external source
   useEffect(() => {
