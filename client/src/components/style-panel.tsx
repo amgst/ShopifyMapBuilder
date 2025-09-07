@@ -115,7 +115,7 @@ export default function StylePanel() {
                   key={shape.id}
                   variant={isSelected ? "default" : "outline"}
                   className={cn(
-                    "p-4 h-auto flex flex-col items-center space-y-2 min-h-[120px]",
+                    "p-3 h-auto flex flex-col items-center space-y-2 min-h-[110px] max-w-full",
                     isSelected && "bg-primary text-primary-foreground border-primary"
                   )}
                   onClick={() => handleShapeChange(shape.id)}
@@ -128,9 +128,9 @@ export default function StylePanel() {
                     shape.id === "twig" && "w-20 h-7 rounded",
                     shape.id === "circle" && "w-10 h-10 rounded-full",
                   )} />
-                  <div className="text-center w-full">
+                  <div className="text-center w-full px-1">
                     <span className="text-sm font-medium block">{shape.label}</span>
-                    <p className="text-xs text-muted-foreground mt-1 leading-tight break-words">{shape.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-tight break-words overflow-hidden">{shape.description}</p>
                   </div>
                 </Button>
               );
@@ -238,18 +238,30 @@ export default function StylePanel() {
                     {/* Material Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-semibold text-sm">{material.label}</h4>
+                        <h4 className={cn(
+                          "font-semibold text-sm",
+                          isSelected ? "text-black" : ""
+                        )}>{material.label}</h4>
                         {material.id === "bamboo" && (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                             Eco-Friendly
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+                      <p className={cn(
+                        "text-xs mb-2 leading-relaxed",
+                        isSelected ? "text-black/70" : "text-muted-foreground"
+                      )}>
                         {material.description}
                       </p>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <div className="w-1 h-1 bg-muted-foreground rounded-full mr-2" />
+                      <div className={cn(
+                        "flex items-center text-xs",
+                        isSelected ? "text-black/70" : "text-muted-foreground"
+                      )}>
+                        <div className={cn(
+                          "w-1 h-1 rounded-full mr-2",
+                          isSelected ? "bg-black/70" : "bg-muted-foreground"
+                        )} />
                         {material.finish}
                       </div>
                     </div>
