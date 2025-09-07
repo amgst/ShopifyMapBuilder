@@ -1,0 +1,104 @@
+
+We want to develop a custom map builder tool that integrates seamlessly with Shopify. The tool should allow customers to design black-and-white engraved-style maps with specific customization options, preview the final product, and automatically generate production-ready files for our team. The builder must support multiple product types and sizes, connect directly to Shopify checkout, and streamline both the customer and admin workflow.
+
+Inspiration
+https://welltolddesign.com/products/home-town-maps-rocks-glass
+https://savannahlasercompany.com/products/custom-etched-map
+
+These examples represent the type of customer flow and customization experience we’re looking for, but we want our solution to be unique and tailored to our products.
+
+Must Haves
+Basic Functionality
+
+- Function fully within the Shopify ecosystem
+- Must seamlessly create and pass orders into Shopify checkout (no manual steps, fully connected to cart/order system)
+- Compatible with current Shopify theme (Impulse)
+- Open to using different mapping software (currently using an outdated version of MapBox)
+- Use aspect ratio of 2.62:1
+- Ability to capture both horizontal (landscape) and vertical (portrait) layouts
+- Support for multiple product sizes and shapes, including:
+- Standard rectangular maps (various sizes)
+-- Sticks (small rectangles)
+-- Twigs (thin, long rectangles)
+-- Circular maps (for ornaments and candles)
+- Zoom and pan controls so customers can adjust the captured map area
+- Undo/redo options when customizing
+- Optimized for modern browsers (Chrome, Safari, Firefox, Edge)
+
+File Saving and Transmission
+- Save file as a true black-and-white image (no gradients)
+-- White = land/text/icons
+-- Black = engraved area
+- Save file as high-quality JPEG (minimum 8MB, maximum 30MB)
+- Must export at 300 DPI resolution for engraving consistency
+- File name should include the Shopify order number (e.g., Order12345_Map.jpeg)
+- Once image is created and order is placed:
+- Automatically email the image to company email
+
+Map Customizations
+- All customizations must be black with option for a white “stroke” border of predetermined thickness
+
+Ability to:
+- Add text to specific areas and move the text freely for design
+- Add a compass in a specific location
+- Add icons from a pre-approved library (~15 icons) and place them on the map
+- Limit fonts to an approved set for engraving compatibility
+
+Appearance
+- Black-and-white image where white = land and black = water
+- Customizations shown in black (with optional white stroke border)
+- Customer preview must reflect final engraving look, including:
+-- Faux wood background for black areas
+-- Optional colored overlays (white areas)
+
+- Basic Functionality
+- Usable from a mobile device
+- Usable via a standalone iOS app
+- Include instructional tooltips or overlay for first-time users
+
+File Saving and Transmission
+Once image is created and order is placed:
+- Automatically upload file into a designated Synology folder in addition to email
+- Save file name as order number
+- Include rendered image in confirmation email to the customer
+- Additional Aspect Ratios
+- Offer two additional aspect ratios (with different pricing structures):
+- 1.38:1
+- 3.10:1
+
+Map Customizations
+Ability to:
+- Freely move text boxes within the captured area
+- Choose font style from a specified set
+- Freely move compasses and icons
+- Freely move icons from the list of available options
+- Invert customization/stroke colors (white text/icon with black stroke for water placement)
+
+Appearance
+- White areas can have a colored overlay from 6 preset options
+- Black areas represented as a faux wood underlay
+- Be able to see a 3D rendering of the design, movable so customers can view sides and back before purchase
+
+Additional Considerations
+Basic Functionality
+- Ability to switch between different substrates, e.g.:
+-- Metal
+-- Elevated print on wood
+
+Ability to switch between different product categories, e.g.:
+- Cutting boards
+- Ornaments
+- Candles
+
+Scalable to handle multiple customers using the tool simultaneously
+- Admin/Team Functionality
+- Admin dashboard to view/download previously generated map files
+- Each generated file linked back to the corresponding Shopify order automatically
+- Optional cloud backup/archiving (AWS S3, Google Drive, etc.)
+
+Deliverables
+
+- Fully functioning Shopify-integrated map builder tool
+- Customer journey: design → preview → add to cart → checkout → order + file generation
+- Automated file generation, naming, and delivery system
+- Documentation for ongoing maintenance, updates, and scaling
