@@ -167,24 +167,35 @@ export default function PreviewPanel() {
 
         {/* Product Preview */}
         <div className="relative flex justify-center mb-6">
-          {/* Product Base */}
-          <div 
-            className={`
-              w-[70%] relative overflow-hidden
-              ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
-              ${state.productSettings?.shape === 'circle' ? 'rounded-full aspect-square' : 'rounded-lg'}
-              ${state.productSettings?.shape === 'rectangle' ? 'aspect-[2/3]' : ''}
-              ${state.productSettings?.shape === 'stick' ? 'aspect-[5/6]' : ''}
-              ${state.productSettings?.shape === 'twig' ? 'aspect-[1/3]' : ''}
-              ${!state.productSettings?.shape && 'aspect-[2/3]'}
-            `}
-          >
+          {/* Material Chart with Top and Bottom Bars */}
+          <div className="w-[70%] relative">
+            {/* Top Material Bar */}
+            <div 
+              className={`
+                w-full h-4 
+                ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-800 to-amber-950' : 'bg-gradient-to-br from-gray-400 to-gray-600'}
+                shadow-md
+              `}
+            />
+            
+            {/* Product Base */}
+            <div 
+              className={`
+                w-full relative overflow-hidden
+                ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
+                ${state.productSettings?.shape === 'circle' ? 'aspect-square' : ''}
+                ${state.productSettings?.shape === 'rectangle' ? 'aspect-[2/3]' : ''}
+                ${state.productSettings?.shape === 'stick' ? 'aspect-[5/6]' : ''}
+                ${state.productSettings?.shape === 'twig' ? 'aspect-[1/3]' : ''}
+                ${!state.productSettings?.shape && 'aspect-[2/3]'}
+              `}
+            >
               {/* Map Engraved Area */}
               <div 
                 ref={previewRef}
                 data-testid="map-preview-area"
                 className={`absolute inset-4 bg-white shadow-inner overflow-hidden ${
-                  state.productSettings?.shape === 'circle' ? 'rounded-full' : 'rounded'
+                  state.productSettings?.shape === 'circle' ? 'rounded-full' : ''
                 }`}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -343,6 +354,16 @@ export default function PreviewPanel() {
                   )}
                 </div>
               </div>
+            </div>
+            
+            {/* Bottom Material Bar */}
+            <div 
+              className={`
+                w-full h-4 
+                ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-800 to-amber-950' : 'bg-gradient-to-br from-gray-400 to-gray-600'}
+                shadow-md
+              `}
+            />
           </div>
         </div>
 
