@@ -65,6 +65,7 @@ type MapBuilderAction =
   | { type: 'SET_COMPASS'; payload?: CompassElement }
   | { type: 'UPDATE_COMPASS_POSITION'; payload: { x: number; y: number } }
   | { type: 'UPDATE_PRODUCT_SETTINGS'; payload: ProductSettings }
+  | { type: 'UPDATE_MAP_ZOOM'; payload: number }
   | { type: 'RESET_STATE' };
 
 const initialState: MapBuilderState = {
@@ -219,6 +220,14 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
         productSettings: action.payload,
       };
 
+    case 'UPDATE_MAP_ZOOM':
+      return {
+        ...state,
+        location: state.location
+          ? { ...state.location, zoom: Math.max(1, Math.min(20, action.payload)) }
+          : undefined,
+      };
+
     case 'RESET_STATE':
       return initialState;
 
@@ -241,6 +250,7 @@ interface MapBuilderContextType {
   setCompass: (compass?: CompassElement) => void;
   updateCompassPosition: (x: number, y: number) => void;
   updateProductSettings: (settings: ProductSettings) => void;
+  updateMapZoom: (zoom: number) => void;
   resetState: () => void;
 }
 
@@ -297,6 +307,10 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_PRODUCT_SETTINGS', payload: settings });
   };
 
+  const updateMapZoom = (zoom: number) => {
+    dispatch({ type: 'UPDATE_MAP_ZOOM', payload: zoom });
+  };
+
   const resetState = () => {
     dispatch({ type: 'RESET_STATE' });
   };
@@ -315,6 +329,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     setCompass,
     updateCompassPosition,
     updateProductSettings,
+    updateMapZoom,
     resetState,
   };
 
