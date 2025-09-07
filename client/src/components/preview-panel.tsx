@@ -10,8 +10,11 @@ import {
   Anchor, 
   Plane,
   Compass,
-  Navigation
+  Navigation,
+  Plus,
+  Minus
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Icon mapping for proper display
 const iconComponents = {
@@ -32,7 +35,7 @@ const compassComponents = {
 };
 
 export default function PreviewPanel() {
-  const { state, updateTextPosition, updateIconPosition, updateIconSize, updateCompassPosition } = useMapBuilder();
+  const { state, updateTextPosition, updateIconPosition, updateIconSize, updateCompassPosition, updateMapZoom } = useMapBuilder();
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     isResizing: boolean;
@@ -139,6 +142,24 @@ export default function PreviewPanel() {
     });
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const currentZoom = state.location?.zoom || 12;
+    const zoomDelta = e.deltaY > 0 ? -0.5 : 0.5;
+    const newZoom = Math.max(1, Math.min(20, currentZoom + zoomDelta));
+    updateMapZoom(newZoom);
+  };
+
+  const handleZoomIn = () => {
+    const currentZoom = state.location?.zoom || 12;
+    updateMapZoom(Math.min(20, currentZoom + 1));
+  };
+
+  const handleZoomOut = () => {
+    const currentZoom = state.location?.zoom || 12;
+    updateMapZoom(Math.max(1, currentZoom - 1));
+  };
+
   return (
     <div className="flex-1 bg-muted/30 p-6 overflow-auto" data-testid="preview-panel">
       <div className="max-w-2xl mx-auto">
@@ -173,6 +194,7 @@ export default function PreviewPanel() {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onWheel={handleWheel}
               >
                 {/* Map Background */}
                 <div className="w-full h-full relative bg-gray-100">
@@ -267,6 +289,35 @@ export default function PreviewPanel() {
                     );
                   })()}
                   
+                  {/* Zoom Controls */}
+                  <div className="absolute top-4 right-4 flex flex-col gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-8 h-8 p-0 bg-white hover:bg-gray-50 shadow-md"
+                      onClick={handleZoomIn}
+                      title="Zoom in"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-8 h-8 p-0 bg-white hover:bg-gray-50 shadow-md"
+                      onClick={handleZoomOut}
+                      title="Zoom out"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Zoom Level Indicator */}
+                  {state.location && (
+                    <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 rounded text-xs font-medium">
+                      Zoom: {state.location.zoom.toFixed(1)}x
+                    </div>
+                  )}
+
                   {/* Coordinates */}
                   {state.location && (
                     <div className="absolute bottom-2 left-2 bg-black text-white px-1 py-0.5 rounded text-xs font-mono">
