@@ -196,6 +196,12 @@ export async function addToShopifyCart(config: ShopifyConfig, mapData: CustomMap
     };
 
   try {
+    console.log('Shopify API Request:', {
+      url: shopifyUrl,
+      variables,
+      mutation: mutation.substring(0, 100) + '...'
+    });
+
     const response = await fetch(shopifyUrl, {
       method: 'POST',
       headers: {
@@ -205,15 +211,30 @@ export async function addToShopifyCart(config: ShopifyConfig, mapData: CustomMap
       body: JSON.stringify({ query: mutation, variables })
     });
 
+    console.log('Shopify API Response Status:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Shopify API Error Response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+    }
+
     const data = await response.json();
+    console.log('Shopify API Response Data:', data);
     
     if (data.errors) {
+      console.error('GraphQL Errors:', data.errors);
       throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
     }
 
-    const result = cartId ? data.data.cartLinesAdd : data.data.cartCreate;
+    const result = cartId ? data.data?.cartLinesAdd : data.data?.cartCreate;
+    
+    if (!result) {
+      throw new Error('No result data received from Shopify API');
+    }
     
     if (result.userErrors && result.userErrors.length > 0) {
+      console.error('Shopify User Errors:', result.userErrors);
       throw new Error(`Shopify errors: ${JSON.stringify(result.userErrors)}`);
     }
 
