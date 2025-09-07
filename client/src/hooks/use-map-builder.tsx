@@ -57,6 +57,7 @@ type MapBuilderAction =
   | { type: 'ADD_TEXT'; payload: Omit<TextElement, 'id'> }
   | { type: 'REMOVE_TEXT'; payload: string }
   | { type: 'UPDATE_TEXT_POSITION'; payload: { id: string; x: number; y: number } }
+  | { type: 'UPDATE_TEXT_STYLE'; payload: { id: string; fontSize?: number; fontFamily?: string; color?: string } }
   | { type: 'ADD_ICON'; payload: Omit<IconElement, 'id'> }
   | { type: 'REMOVE_ICON'; payload: string }
   | { type: 'UPDATE_ICON_POSITION'; payload: { id: string; x: number; y: number } }
@@ -147,6 +148,24 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
         },
       };
 
+    case 'UPDATE_TEXT_STYLE':
+      return {
+        ...state,
+        customizations: {
+          ...state.customizations,
+          texts: state.customizations.texts.map(text =>
+            text.id === action.payload.id
+              ? { 
+                  ...text, 
+                  ...(action.payload.fontSize !== undefined && { fontSize: action.payload.fontSize }),
+                  ...(action.payload.fontFamily !== undefined && { fontFamily: action.payload.fontFamily }),
+                  ...(action.payload.color !== undefined && { color: action.payload.color }),
+                }
+              : text
+          ),
+        },
+      };
+
     case 'UPDATE_ICON_POSITION':
       return {
         ...state,
@@ -200,6 +219,7 @@ interface MapBuilderContextType {
   addText: (text: Omit<TextElement, 'id'>) => void;
   removeText: (id: string) => void;
   updateTextPosition: (id: string, x: number, y: number) => void;
+  updateTextStyle: (id: string, fontSize?: number, fontFamily?: string, color?: string) => void;
   addIcon: (icon: Omit<IconElement, 'id'>) => void;
   removeIcon: (id: string) => void;
   updateIconPosition: (id: string, x: number, y: number) => void;
@@ -238,6 +258,10 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_TEXT_POSITION', payload: { id, x, y } });
   };
 
+  const updateTextStyle = (id: string, fontSize?: number, fontFamily?: string, color?: string) => {
+    dispatch({ type: 'UPDATE_TEXT_STYLE', payload: { id, fontSize, fontFamily, color } });
+  };
+
   const updateIconPosition = (id: string, x: number, y: number) => {
     dispatch({ type: 'UPDATE_ICON_POSITION', payload: { id, x, y } });
   };
@@ -264,6 +288,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     addText,
     removeText,
     updateTextPosition,
+    updateTextStyle,
     addIcon,
     removeIcon,
     updateIconPosition,
