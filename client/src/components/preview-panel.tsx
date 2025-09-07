@@ -15,6 +15,7 @@ import {
   Minus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import InteractiveMap from "@/components/interactive-map";
 
 // Icon mapping for proper display
 const iconComponents = {
@@ -190,42 +191,29 @@ export default function PreviewPanel() {
                 onMouseLeave={handleMouseUp}
                 onWheel={handleWheel}
               >
-                {/* Map Background - Black and white where white = land, black = water */}
-                <div className="w-full h-full relative bg-white">
-                  {/* Land areas (white background with faux wood texture for engraving areas) */}
-                  <div className="absolute inset-0 bg-white">
-                    {/* Water areas (black) with faux wood background */}
-                    <div 
-                      className="absolute top-1/2 left-0 w-full h-12 transform -rotate-12"
-                      style={{
-                        background: state.productSettings?.material === 'wood' 
-                          ? 'linear-gradient(135deg, #92400e 0%, #451a03 50%, #1c0701 100%)' 
-                          : '#000000'
-                      }}
-                    ></div>
-                    <div 
-                      className="absolute top-1/4 right-8 w-40 h-40 rounded-full"
-                      style={{
-                        background: state.productSettings?.material === 'wood' 
-                          ? 'linear-gradient(135deg, #92400e 0%, #451a03 50%, #1c0701 100%)' 
-                          : '#000000'
-                      }}
-                    ></div>
-                    <div 
-                      className="absolute bottom-1/4 left-8 w-24 h-32 rounded-lg transform rotate-45"
-                      style={{
-                        background: state.productSettings?.material === 'wood' 
-                          ? 'linear-gradient(135deg, #92400e 0%, #451a03 50%, #1c0701 100%)' 
-                          : '#000000'
-                      }}
-                    ></div>
+                {/* Interactive Map - Users can click to select locations */}
+                <div className="w-full h-full relative">
+                  {/* Map with black/white engraving style filter */}
+                  <div 
+                    className="absolute inset-0 overflow-hidden"
+                    style={{
+                      filter: 'grayscale(100%) contrast(150%) brightness(110%)',
+                      mixBlendMode: 'multiply'
+                    }}
+                  >
+                    <InteractiveMap className="w-full h-full" />
                   </div>
                   
-                  {/* Optional colored overlays for white areas */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/3 left-1/4 w-16 h-16 bg-green-200 opacity-30 rounded-full"></div>
-                    <div className="absolute bottom-1/3 right-1/4 w-20 h-12 bg-blue-200 opacity-30 rounded-lg"></div>
-                  </div>
+                  {/* Faux wood background overlay for water areas */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: state.productSettings?.material === 'wood' 
+                        ? 'linear-gradient(135deg, rgba(146, 64, 14, 0.3) 0%, rgba(69, 26, 3, 0.3) 50%, rgba(28, 7, 1, 0.3) 100%)' 
+                        : 'rgba(0, 0, 0, 0.1)',
+                      mixBlendMode: 'multiply'
+                    }}
+                  />
                   
                   {/* Location indicator */}
                   {state.location && (
