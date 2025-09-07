@@ -174,10 +174,10 @@ export default function PreviewPanel() {
                 w-full relative overflow-hidden
                 ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
                 ${state.productSettings?.shape === 'circle' ? 'rounded-full aspect-square' : 'rounded-lg'}
-                ${state.productSettings?.shape === 'rectangle' ? 'aspect-[3/2]' : ''}
-                ${state.productSettings?.shape === 'stick' ? 'aspect-[6/5]' : ''}
-                ${state.productSettings?.shape === 'twig' ? 'aspect-[3/1]' : ''}
-                ${!state.productSettings?.shape && 'aspect-[3/2]'}
+                ${state.productSettings?.shape === 'rectangle' ? 'aspect-[2/3]' : ''}
+                ${state.productSettings?.shape === 'stick' ? 'aspect-[5/6]' : ''}
+                ${state.productSettings?.shape === 'twig' ? 'aspect-[1/3]' : ''}
+                ${!state.productSettings?.shape && 'aspect-[2/3]'}
               `}
             >
               {/* Map Engraved Area */}
