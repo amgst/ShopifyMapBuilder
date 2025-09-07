@@ -174,7 +174,7 @@ export default function PreviewPanel() {
               className={`
                 w-full h-4 
                 ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-800 to-amber-950' : 'bg-gradient-to-br from-gray-400 to-gray-600'}
-                shadow-md
+                shadow-sm
               `}
             />
             
@@ -194,7 +194,7 @@ export default function PreviewPanel() {
               <div 
                 ref={previewRef}
                 data-testid="map-preview-area"
-                className={`absolute inset-4 bg-white shadow-inner overflow-hidden ${
+                className={`absolute inset-4 bg-white shadow-sm overflow-hidden ${
                   state.productSettings?.shape === 'circle' ? 'rounded-full' : ''
                 }`}
                 onMouseMove={handleMouseMove}
@@ -361,7 +361,7 @@ export default function PreviewPanel() {
               className={`
                 w-full h-4 
                 ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-800 to-amber-950' : 'bg-gradient-to-br from-gray-400 to-gray-600'}
-                shadow-md
+                shadow-sm
               `}
             />
           </div>
