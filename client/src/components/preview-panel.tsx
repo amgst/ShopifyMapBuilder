@@ -366,27 +366,6 @@ export default function PreviewPanel() {
           </div>
         </div>
 
-        {/* Alternative Product Views */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="font-semibold mb-4">Other Product Options</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-              <div className="w-full h-32 bg-gradient-to-br from-amber-700 to-amber-900 rounded-full mb-2 flex items-center justify-center">
-                <div className="w-24 h-24 bg-white rounded-full shadow-inner"></div>
-              </div>
-              <p className="text-sm font-medium">Ornament</p>
-              <p className="text-xs text-muted-foreground">$29.99</p>
-            </div>
-            
-            <div className="text-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-              <div className="w-full h-32 bg-gradient-to-br from-amber-700 to-amber-900 rounded-lg mb-2 flex items-center justify-center">
-                <div className="w-16 h-24 bg-white rounded shadow-inner"></div>
-              </div>
-              <p className="text-sm font-medium">Candle</p>
-              <p className="text-xs text-muted-foreground">$39.99</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
