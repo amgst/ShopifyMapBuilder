@@ -46,13 +46,6 @@ const materialOptions = [
     finish: "Anodized coating"
   },
   { 
-    id: "steel", 
-    label: "Stainless Steel", 
-    description: "Premium mirror-like finish",
-    texture: "polished-metal",
-    finish: "Rust-resistant coating"
-  },
-  { 
     id: "brass", 
     label: "Antique Brass", 
     description: "Vintage golden finish with character",
@@ -210,7 +203,6 @@ export default function StylePanel() {
                           material.id === "bamboo" && "bg-gradient-to-br from-yellow-100 via-yellow-200 to-amber-300",
                           // Metal materials
                           material.id === "aluminum" && "bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400",
-                          material.id === "steel" && "bg-gradient-to-br from-slate-300 via-slate-100 to-slate-300",
                           material.id === "brass" && "bg-gradient-to-br from-yellow-600 via-amber-500 to-yellow-700"
                         )} />
                         
@@ -221,7 +213,7 @@ export default function StylePanel() {
                           (material.id === "oak" || material.id === "walnut" || material.id === "bamboo") && 
                           "bg-gradient-to-r from-transparent via-black/10 to-transparent",
                           // Metal brush patterns
-                          (material.id === "aluminum" || material.id === "steel") && 
+                          material.id === "aluminum" && 
                           "bg-gradient-to-r from-transparent via-white/20 to-transparent",
                           // Antique patina
                           material.id === "brass" && "bg-gradient-to-br from-black/10 via-transparent to-black/20"
@@ -230,7 +222,6 @@ export default function StylePanel() {
                         {/* Shine/reflection effect */}
                         <div className={cn(
                           "absolute top-1 left-1 right-1 h-3 rounded-t-lg opacity-30",
-                          material.id === "steel" && "bg-gradient-to-r from-transparent via-white to-transparent",
                           material.id === "aluminum" && "bg-gradient-to-r from-transparent via-white/60 to-transparent",
                           material.id === "brass" && "bg-gradient-to-r from-transparent via-yellow-200/60 to-transparent"
                         )} />
