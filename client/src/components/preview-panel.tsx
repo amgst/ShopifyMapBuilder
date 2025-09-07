@@ -182,6 +182,7 @@ export default function PreviewPanel() {
               {/* Map Engraved Area */}
               <div 
                 ref={previewRef}
+                data-testid="map-preview-area"
                 className={`absolute inset-4 bg-white shadow-inner overflow-hidden ${
                   state.productSettings?.shape === 'circle' ? 'rounded-full' : 'rounded'
                 }`}

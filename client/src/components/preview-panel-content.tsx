@@ -1,9 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Save, ShoppingCart } from "lucide-react";
+import { Save, ShoppingCart, Download } from "lucide-react";
 import { useMapBuilder } from "@/hooks/use-map-builder";
+import { exportMapImage, downloadImage } from "@/utils/image-export";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PreviewPanelContent() {
   const { state } = useMapBuilder();
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
   const sizeOptions = [
     { id: "standard", label: '12" × 8" Standard', price: 64.99 },
@@ -12,6 +17,47 @@ export default function PreviewPanelContent() {
   ];
 
   const currentSize = sizeOptions.find(s => s.id === state.productSettings?.size) || sizeOptions[0];
+
+  const handleSaveDesign = async () => {
+    setIsExporting(true);
+    try {
+      // Find the preview element using DOM query
+      const previewElement = document.querySelector('[data-testid="map-preview-area"]') as HTMLElement;
+      
+      if (!previewElement) {
+        throw new Error('Preview area not found. Please make sure the map is loaded.');
+      }
+
+      // Generate order ID (in real app, this would come from Shopify)
+      const orderId = `${Date.now()}`;
+      
+      const result = await exportMapImage(previewElement, {
+        orderId,
+        targetSize: 15, // 15MB target
+        minSize: 8,     // 8MB minimum
+        maxSize: 30     // 30MB maximum
+      });
+
+      // Download the image
+      downloadImage(result.blob, result.filename);
+
+      // Show success message
+      toast({
+        title: "Design Saved Successfully!",
+        description: `Your map has been exported as ${result.filename} (${result.sizeInMB.toFixed(1)}MB)`,
+      });
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to save design. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="h-full p-6" data-testid="preview-panel-content">
@@ -60,10 +106,21 @@ export default function PreviewPanelContent() {
             variant="outline" 
             className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-3 px-6 rounded-lg text-base transition-all duration-200" 
             size="lg"
+            onClick={handleSaveDesign}
+            disabled={isExporting}
             data-testid="save-design-button"
           >
-            <Save className="h-4 w-4 mr-2" />
-            Save Design
+            {isExporting ? (
+              <>
+                <Download className="h-4 w-4 mr-2 animate-spin" />
+                Generating Image...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Design
+              </>
+            )}
           </Button>
         </div>
 
