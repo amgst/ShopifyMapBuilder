@@ -52,7 +52,7 @@ export async function findShopifyProducts(config: ShopifyConfig) {
       return null;
     }
 
-    return data.data.products.edges.map((edge: any) => ({
+    const products = data.data.products.edges.map((edge: any) => ({
       id: edge.node.id,
       title: edge.node.title,
       handle: edge.node.handle,
@@ -63,6 +63,17 @@ export async function findShopifyProducts(config: ShopifyConfig) {
         availableForSale: variantEdge.node.availableForSale
       }))
     }));
+
+    // Find the custom map product specifically
+    const customMapProduct = products.find((p: any) => p.handle === 'custom-map-product');
+    if (customMapProduct) {
+      console.log('Found custom map product:', customMapProduct);
+      if (customMapProduct.variants.length > 0) {
+        console.log('Use this variant ID:', customMapProduct.variants[0].id);
+      }
+    }
+
+    return products;
   } catch (error) {
     console.error('Error fetching products:', error);
     return null;
