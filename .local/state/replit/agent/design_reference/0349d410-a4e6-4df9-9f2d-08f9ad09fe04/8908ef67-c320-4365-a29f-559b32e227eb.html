@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Builder - Engraved Maps Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            }
+        }
+    };
+    </script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Heroicons -->
+    <script src="https://unpkg.com/@heroicons/react@2.0.16/24/outline/index.js"></script>
+    
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(221.2 83.2% 53.3%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222.2 84% 4.9%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222.2 84% 4.9%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 0.5rem;
+            --font-sans: 'Inter', sans-serif;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+        
+        .map-container {
+            height: 400px;
+            width: 100%;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        
+        .aspect-ratio-262 {
+            aspect-ratio: 2.62 / 1;
+        }
+        
+        .engraved-preview {
+            filter: contrast(200%) brightness(80%);
+            mix-blend-mode: multiply;
+        }
+        
+        .wood-texture {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="wood" patternUnits="userSpaceOnUse" width="100" height="100"><rect width="100" height="100" fill="%23D4A574"/><path d="M0 10c20 0 20 10 40 10s20-10 40-10v10c-20 0-20 10-40 10s-20-10-40-10V10z" fill="%23C19A68"/><path d="M0 30c20 0 20 10 40 10s20-10 40-10v10c-20 0-20 10-40 10s-20-10-40-10V30z" fill="%23B8906C"/></pattern></defs><rect width="100" height="100" fill="url(%23wood)"/></svg>');
+            background-size: 100px 50px;
+        }
+        
+        @media (max-width: 768px) {
+            .map-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-background text-foreground">
+    <!-- @COMPONENT: AppLayout [Main application layout with sidebar and content area] -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- @COMPONENT: Sidebar [Navigation sidebar with icon tabs] -->
+        <div class="hidden md:flex md:w-64 md:flex-col">
+            <div class="flex flex-col flex-1 min-h-0 bg-card border-r border-border">
+                <div class="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+                    <div class="flex items-center flex-shrink-0 px-4">
+                        <h1 class="text-xl font-semibold text-foreground">Map Builder</h1>
+                    </div>
+                    
+                    <nav class="mt-8 flex-1 px-2 space-y-1" data-implementation="React Router navigation">
+                        <!-- @MAP: navigationTabs.map(tab => ( -->
+                        <button class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-foreground bg-secondary hover:bg-accent transition-colors w-full text-left" data-tab="location">
+                            <svg class="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Location
+                        </button>
+                        
+                        <button class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors w-full text-left" data-tab="edit">
+                            <svg class="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit
+                        </button>
+                        
+                        <button class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors w-full text-left" data-tab="style">
+                            <svg class="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 21h10a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v7z"/>
+                            </svg>
+                            Style
+                        </button>
+                        
+                        <button class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors w-full text-left" data-tab="preview">
+                            <svg class="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Preview
+                        </button>
+                        <!-- @END_MAP )) -->
+                    </nav>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile sidebar overlay -->
+        <div class="md:hidden fixed inset-0 z-40 flex" id="mobile-sidebar" style="display: none;">
+            <div class="fixed inset-0 bg-gray-600 bg-opacity-75" data-event="click:closeSidebar"></div>
+            <div class="relative flex-1 flex flex-col max-w-xs w-full bg-card">
+                <div class="absolute top-0 right-0 -mr-12 pt-2">
+                    <button class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" data-event="click:closeSidebar">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Mobile navigation content (same as desktop) -->
+            </div>
+        </div>
+        
+        <!-- @COMPONENT: MainContent [Main content area with map and tools] -->
+        <div class="flex flex-col w-0 flex-1 overflow-hidden">
+            
+            <!-- Top bar -->
+            <div class="relative z-10 flex-shrink-0 flex h-16 bg-card shadow border-b border-border">
+                <button class="px-4 border-r border-border text-muted-foreground focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary md:hidden" data-event="click:openSidebar">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                
+                <div class="flex-1 px-4 flex justify-between items-center">
+                    <div class="flex-1 flex">
+                        <h2 class="text-lg font-medium text-foreground">Location Selection</h2>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <!-- Aspect ratio selector -->
+                        <select class="px-3 py-1 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="2.62">2.62:1 (Standard)</option>
+                            <option value="1.38">1.38:1 (Square-ish)</option>
+                            <option value="3.10">3.10:1 (Panoramic)</option>
+                        </select>
+                        
+                        <!-- Orientation toggle -->
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 text-muted-foreground hover:text-foreground transition-colors" title="Landscape">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
+                                </svg>
+                            </button>
+                            <button class="p-2 text-muted-foreground hover:text-foreground transition-colors" title="Portrait">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <rect x="6" y="2" width="12" height="20" rx="2" ry="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main content -->
+            <main class="flex-1 relative overflow-y-auto focus:outline-none">
+                <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                        
+                        <!-- Location Search Panel -->
+                        <div class="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+                            <h3 class="text-lg font-medium text-foreground mb-4">Search for a Location</h3>
+                            
+                            <div class="flex space-x-4 mb-4">
+                                <div class="flex-1">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search for a location, street or landmark..."
+                                        class="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        data-mock="true"
+                                        data-implementation="Connect to mapping service API for location search"
+                                    />
+                                </div>
+                                <button class="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                                    Search
+                                </button>
+                            </div>
+                            
+                            <div class="text-sm text-muted-foreground flex items-center">
+                                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                </svg>
+                                Use your current location
+                            </div>
+                        </div>
+                        
+                        <!-- Map and Tools Layout -->
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            
+                            <!-- Map Display -->
+                            <div class="lg:col-span-3">
+                                <div class="bg-card rounded-lg shadow-sm border border-border p-4">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-lg font-medium text-foreground">Map View</h3>
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 text-muted-foreground hover:text-foreground border border-border rounded-md" title="Zoom In">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <circle cx="11" cy="11" r="8"/>
+                                                    <path d="M21 21l-4.35-4.35"/>
+                                                    <line x1="11" y1="8" x2="11" y2="14"/>
+                                                    <line x1="8" y1="11" x2="14" y2="11"/>
+                                                </svg>
+                                            </button>
+                                            <button class="p-2 text-muted-foreground hover:text-foreground border border-border rounded-md" title="Zoom Out">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <circle cx="11" cy="11" r="8"/>
+                                                    <path d="M21 21l-4.35-4.35"/>
+                                                    <line x1="8" y1="11" x2="14" y2="11"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Map Container with 2.62:1 aspect ratio -->
+                                    <div class="relative aspect-ratio-262 bg-muted rounded-lg overflow-hidden border-2 border-dashed border-primary">
+                                        <!-- Map placeholder - in production this would be Leaflet map -->
+                                        <div id="map" class="map-container w-full h-full bg-gray-300 relative">
+                                            <!-- Mock map representation -->
+                                            <!-- A satellite view of San Francisco with the Golden Gate Bridge visible -->
+                                            <img 
+                                                src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=305" 
+                                                alt="Satellite view of San Francisco showing the Golden Gate Bridge area" 
+                                                class="w-full h-full object-cover"
+                                                data-mock-image="true" 
+                                                data-implementation="Replace with interactive Leaflet map component"
+                                            />
+                                            
+                                            <!-- Capture area overlay -->
+                                            <div class="absolute inset-4 border-2 border-red-500 bg-red-500/10 rounded-md flex items-center justify-center">
+                                                <div class="text-red-700 text-sm font-medium bg-white/90 px-2 py-1 rounded">
+                                                    Capture Area (2.62:1)
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Pan controls -->
+                                            <div class="absolute top-4 left-4 bg-card rounded-md shadow-lg p-2">
+                                                <div class="grid grid-cols-3 gap-1">
+                                                    <div></div>
+                                                    <button class="p-1 hover:bg-muted rounded" title="Pan Up">↑</button>
+                                                    <div></div>
+                                                    <button class="p-1 hover:bg-muted rounded" title="Pan Left">←</button>
+                                                    <button class="p-1 hover:bg-muted rounded" title="Center">⌖</button>
+                                                    <button class="p-1 hover:bg-muted rounded" title="Pan Right">→</button>
+                                                    <div></div>
+                                                    <button class="p-1 hover:bg-muted rounded" title="Pan Down">↓</button>
+                                                    <div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Map Controls -->
+                                    <div class="flex justify-between items-center mt-4">
+                                        <div class="flex space-x-2">
+                                            <button class="px-3 py-1 text-sm border border-border rounded-md hover:bg-muted transition-colors" data-event="click:undo">
+                                                ← Undo
+                                            </button>
+                                            <button class="px-3 py-1 text-sm border border-border rounded-md hover:bg-muted transition-colors" data-event="click:redo">
+                                                Redo →
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="text-sm text-muted-foreground">
+                                            <span data-bind="map.coordinates" data-mock="true">37.7749°N, 122.4194°W</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Tools Panel -->
+                            <div class="lg:col-span-1">
+                                <div class="bg-card rounded-lg shadow-sm border border-border p-4 mb-6">
+                                    <h3 class="text-lg font-medium text-foreground mb-4">Popular Places</h3>
+                                    <div class="space-y-3">
+                                        <!-- @MAP: popularPlaces.map(place => ( -->
+                                        <button class="w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm" data-mock="true">
+                                            <div class="font-medium text-foreground">Paris, France</div>
+                                            <div class="text-muted-foreground">48.8566°N, 2.3522°E</div>
+                                        </button>
+                                        <button class="w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm" data-mock="true">
+                                            <div class="font-medium text-foreground">Stockholm, Sweden</div>
+                                            <div class="text-muted-foreground">59.3293°N, 18.0686°E</div>
+                                        </button>
+                                        <button class="w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm" data-mock="true">
+                                            <div class="font-medium text-foreground">Berlin, Germany</div>
+                                            <div class="text-muted-foreground">52.5200°N, 13.4050°E</div>
+                                        </button>
+                                        <button class="w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm" data-mock="true">
+                                            <div class="font-medium text-foreground">Tokyo, Japan</div>
+                                            <div class="text-muted-foreground">35.6762°N, 139.6503°E</div>
+                                        </button>
+                                        <button class="w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm" data-mock="true">
+                                            <div class="font-medium text-foreground">London, UK</div>
+                                            <div class="text-muted-foreground">51.5074°N, 0.1278°W</div>
+                                        </button>
+                                        <!-- @END_MAP )) -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Quick Actions -->
+                                <div class="bg-card rounded-lg shadow-sm border border-border p-4">
+                                    <h3 class="text-lg font-medium text-foreground mb-4">Quick Actions</h3>
+                                    <div class="space-y-2">
+                                        <button class="w-full px-3 py-2 text-sm border border-border rounded-md hover:bg-muted transition-colors text-left">
+                                            📍 Add Location Pin
+                                        </button>
+                                        <button class="w-full px-3 py-2 text-sm border border-border rounded-md hover:bg-muted transition-colors text-left">
+                                            🧭 Add Compass
+                                        </button>
+                                        <button class="w-full px-3 py-2 text-sm border border-border rounded-md hover:bg-muted transition-colors text-left">
+                                            📝 Add Text Label
+                                        </button>
+                                        <button class="w-full px-3 py-2 text-sm border border-border rounded-md hover:bg-muted transition-colors text-left">
+                                            🎯 Center Map
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Customization Panel (Hidden by default, shown when Edit tab is active) -->
+                        <div id="customization-panel" class="mt-6 bg-card rounded-lg shadow-sm border border-border p-6" style="display: none;">
+                            <h3 class="text-lg font-medium text-foreground mb-6">Customize Your Map</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                
+                                <!-- Text Tools -->
+                                <div>
+                                    <h4 class="font-medium text-foreground mb-4">Text Labels</h4>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-foreground mb-1">Label Text</label>
+                                            <input type="text" placeholder="Enter custom text..." class="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-foreground mb-1">Font</label>
+                                            <select class="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary">
+                                                <option>Arial</option>
+                                                <option>Helvetica</option>
+                                                <option>Times New Roman</option>
+                                                <option>Georgia</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-foreground mb-1">Size</label>
+                                            <input type="range" min="12" max="36" value="16" class="w-full" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Icon Tools -->
+                                <div>
+                                    <h4 class="font-medium text-foreground mb-4">Icons</h4>
+                                    <div class="grid grid-cols-4 gap-2">
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">🏠</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">🏢</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">🏥</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">🏫</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">⛪</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">🏪</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">🌳</button>
+                                        <button class="p-3 border border-border rounded-md hover:bg-muted transition-colors text-xl">⭐</button>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <h5 class="text-sm font-medium text-foreground mb-2">Compass</h5>
+                                        <div class="flex space-x-2">
+                                            <button class="flex-1 p-2 border border-border rounded-md hover:bg-muted transition-colors text-sm">Classic</button>
+                                            <button class="flex-1 p-2 border border-border rounded-md hover:bg-muted transition-colors text-sm">Modern</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Style Tools -->
+                                <div>
+                                    <h4 class="font-medium text-foreground mb-4">Style Options</h4>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="flex items-center">
+                                                <input type="checkbox" class="mr-2" />
+                                                <span class="text-sm">White stroke border</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-foreground mb-1">Border Width</label>
+                                            <input type="range" min="1" max="5" value="2" class="w-full" />
+                                        </div>
+                                        <div>
+                                            <label class="flex items-center">
+                                                <input type="checkbox" class="mr-2" />
+                                                <span class="text-sm">Invert colors</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        
+                        <!-- Preview Panel (Hidden by default, shown when Preview tab is active) -->
+                        <div id="preview-panel" class="mt-6 bg-card rounded-lg shadow-sm border border-border p-6" style="display: none;">
+                            <h3 class="text-lg font-medium text-foreground mb-6">Engraved Preview</h3>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                
+                                <!-- Black & White Preview -->
+                                <div>
+                                    <h4 class="font-medium text-foreground mb-4">Final Engraving Preview</h4>
+                                    <div class="aspect-ratio-262 bg-black rounded-lg overflow-hidden border border-border">
+                                        <!-- Mock engraved map preview -->
+                                        <div class="w-full h-full bg-black relative engraved-preview">
+                                            <!-- A high contrast black and white map design showing streets and landmarks -->
+                                            <img 
+                                                src="https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=305" 
+                                                alt="High contrast black and white street map with clear road networks and landmarks"
+                                                class="w-full h-full object-cover filter invert contrast-200"
+                                                data-mock-image="true" 
+                                                data-implementation="Generate black/white engraved-style map from selected area"
+                                            />
+                                            
+                                            <!-- Mock text overlay -->
+                                            <div class="absolute bottom-4 left-4 text-white font-bold text-lg bg-black/50 px-2 py-1 rounded" data-mock="true">
+                                                SAN FRANCISCO
+                                            </div>
+                                            
+                                            <!-- Mock compass -->
+                                            <div class="absolute top-4 right-4 w-12 h-12 border-2 border-white rounded-full flex items-center justify-center text-white font-bold" data-mock="true">
+                                                N
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4 text-sm text-muted-foreground">
+                                        <p>• White areas = Land/Text (will remain natural wood)</p>
+                                        <p>• Black areas = Water/Background (will be engraved)</p>
+                                        <p>• Resolution: 300 DPI for professional engraving</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 3D Product Mockup -->
+                                <div>
+                                    <h4 class="font-medium text-foreground mb-4">Product Mockup</h4>
+                                    <div class="aspect-ratio-262 rounded-lg overflow-hidden border border-border wood-texture">
+                                        <!-- A wooden cutting board or similar engraved product mockup -->
+                                        <img 
+                                            src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=305" 
+                                            alt="Wooden cutting board with engraved map design showing the final product appearance"
+                                            class="w-full h-full object-cover opacity-80"
+                                            data-mock-image="true" 
+                                            data-implementation="3D product renderer showing engraved design on selected substrate"
+                                        />
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <label class="block text-sm font-medium text-foreground mb-2">Product Type</label>
+                                        <select class="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary">
+                                            <option>Cutting Board (Wood)</option>
+                                            <option>Ornament (Metal)</option>
+                                            <option>Candle (Wax)</option>
+                                            <option>Wall Art (Wood)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex justify-between items-center mt-8">
+                                <div class="text-sm text-muted-foreground">
+                                    <p>File will be saved as: <span class="font-mono" data-bind="order.filename" data-mock="true">Order12345_Map.jpeg</span></p>
+                                    <p>Size: <span data-bind="file.size" data-mock="true">~12MB</span> | Resolution: 300 DPI</p>
+                                </div>
+                                
+                                <div class="flex space-x-4">
+                                    <button class="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors">
+                                        Save Draft
+                                    </button>
+                                    <button class="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium" data-implementation="Connect to Shopify checkout process">
+                                        Add to Cart - $64.99
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+    </div>
+    <!-- @END_COMPONENT: AppLayout -->
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Basic JavaScript for demo interactions - TODO: Convert to React hooks and components
+        (function() {
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('[data-tab]');
+            const panels = {
+                'location': document.querySelector('main'),
+                'edit': document.getElementById('customization-panel'),
+                'preview': document.getElementById('preview-panel')
+            };
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    // Update active tab styling
+                    tabs.forEach(t => {
+                        t.classList.remove('bg-secondary', 'text-foreground');
+                        t.classList.add('text-muted-foreground');
+                    });
+                    e.target.closest('button').classList.add('bg-secondary', 'text-foreground');
+                    e.target.closest('button').classList.remove('text-muted-foreground');
+                    
+                    // Show/hide appropriate panels
+                    Object.values(panels).forEach(panel => {
+                        if (panel) panel.style.display = 'none';
+                    });
+                    
+                    const tabName = e.target.closest('button').getAttribute('data-tab');
+                    if (tabName === 'location') {
+                        document.querySelector('main > div > div').style.display = 'block';
+                    } else if (panels[tabName]) {
+                        panels[tabName].style.display = 'block';
+                    }
+                    
+                    // Update header title
+                    const headerTitles = {
+                        'location': 'Location Selection',
+                        'edit': 'Customize Map',
+                        'style': 'Style Options',
+                        'preview': 'Preview & Purchase'
+                    };
+                    document.querySelector('h2').textContent = headerTitles[tabName] || 'Map Builder';
+                });
+            });
+            
+            // Mobile sidebar toggle
+            const mobileMenuButton = document.querySelector('[data-event="click:openSidebar"]');
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            const closeSidebarButtons = document.querySelectorAll('[data-event="click:closeSidebar"]');
+            
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileSidebar.style.display = 'flex';
+                });
+            }
+            
+            closeSidebarButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    mobileSidebar.style.display = 'none';
+                });
+            });
+            
+            // TODO: Initialize Leaflet map
+            // const map = L.map('map').setView([37.7749, -122.4194], 13);
+            // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            
+            // TODO: Add map interaction handlers for:
+            // - Location search and geocoding
+            // - Pan and zoom controls
+            // - Capture area selection
+            // - Text and icon placement
+            // - Real-time preview updates
+            
+            // TODO: Implement state management for:
+            // - Selected location and zoom level
+            // - Added customizations (text, icons, compass)
+            // - Preview settings and product options
+            // - Cart integration with Shopify
+            
+        })();
+    </script>
+</body>
+</html>

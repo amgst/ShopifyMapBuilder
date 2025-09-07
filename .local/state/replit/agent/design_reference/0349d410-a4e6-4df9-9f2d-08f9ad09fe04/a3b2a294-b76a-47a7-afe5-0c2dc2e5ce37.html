@@ -1,0 +1,561 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Map Builder - Engraved Maps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                },
+                fontFamily: {
+                    sans: ["Inter", "var(--font-sans)"],
+                }
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(210 11% 15%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(210 11% 15%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(210 11% 15%);
+            --primary: hsl(214 84% 56%);
+            --primary-foreground: hsl(0 0% 98%);
+            --secondary: hsl(210 40% 94%);
+            --secondary-foreground: hsl(210 11% 15%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(210 11% 47%);
+            --accent: hsl(210 40% 94%);
+            --accent-foreground: hsl(210 11% 15%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(0 0% 98%);
+            --border: hsl(210 40% 90%);
+            --input: hsl(210 40% 94%);
+            --ring: hsl(214 84% 56%);
+            --radius: 0.5rem;
+        }
+
+        .sidebar-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .map-aspect-ratio {
+            aspect-ratio: 2.62 / 1;
+        }
+
+        .engraved-preview {
+            background: linear-gradient(45deg, #8B4513 0%, #A0522D 25%, #8B4513 50%, #A0522D 75%, #8B4513 100%);
+            background-size: 20px 20px;
+        }
+
+        .map-overlay {
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 1px,
+                rgba(0,0,0,0.03) 1px,
+                rgba(0,0,0,0.03) 2px
+            );
+        }
+    </style>
+</head>
+<body class="bg-background font-sans antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- @COMPONENT: Sidebar [collapsible navigation with tabs] -->
+        <aside id="sidebar" class="sidebar-transition bg-card border-r border-border flex flex-col shadow-sm" style="width: 280px;">
+            <!-- Sidebar Header -->
+            <div class="flex items-center justify-between p-4 border-b border-border">
+                <h2 id="sidebar-title" class="text-lg font-semibold text-foreground">Map Builder</h2>
+                <button id="sidebar-toggle" class="p-2 rounded-md hover:bg-accent transition-colors" data-event="click:toggleSidebar">
+                    <i class="fas fa-chevron-left text-muted-foreground"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex-1 p-2">
+                <div class="space-y-1">
+                    <!-- @MAP: navigationTabs.map(tab => ( -->
+                    <button class="tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-primary bg-accent transition-colors" data-tab="location" data-event="click:switchTab">
+                        <i class="fas fa-map-marker-alt w-5 h-5 mr-3"></i>
+                        <span class="tab-text">Location</span>
+                    </button>
+                    <button class="tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-tab="edit" data-event="click:switchTab">
+                        <i class="fas fa-edit w-5 h-5 mr-3"></i>
+                        <span class="tab-text">Edit</span>
+                    </button>
+                    <button class="tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-tab="style" data-event="click:switchTab">
+                        <i class="fas fa-palette w-5 h-5 mr-3"></i>
+                        <span class="tab-text">Style</span>
+                    </button>
+                    <button class="tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-tab="preview" data-event="click:switchTab">
+                        <i class="fas fa-eye w-5 h-5 mr-3"></i>
+                        <span class="tab-text">Preview</span>
+                    </button>
+                    <button class="tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" data-tab="products" data-event="click:switchTab">
+                        <i class="fas fa-box w-5 h-5 mr-3"></i>
+                        <span class="tab-text">Products</span>
+                    </button>
+                    <!-- @END_MAP )) -->
+                </div>
+            </nav>
+
+            <!-- Sidebar Content Area -->
+            <div class="flex-1 p-4 border-t border-border overflow-y-auto">
+                <!-- @COMPONENT: LocationTab [search and map controls] -->
+                <div id="location-content" class="tab-content">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-foreground mb-2">Search for a Place</label>
+                            <div class="relative">
+                                <input type="text" placeholder="Search for a location, street or landmark" class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" data-implementation="Connect to map search API">
+                                <i class="fas fa-search absolute right-3 top-3 text-muted-foreground text-sm"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <input type="checkbox" id="use-current" class="rounded border-border">
+                            <label for="use-current">Use your current position</label>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Other Popular Places</h3>
+                            <div class="space-y-2">
+                                <!-- @MAP: popularPlaces.map(place => ( -->
+                                <button class="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-mock="true">Paris, France</button>
+                                <button class="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-mock="true">Stockholm, Sweden</button>
+                                <button class="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-mock="true">Berlin, Germany</button>
+                                <button class="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-mock="true">Tokyo, Japan</button>
+                                <button class="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-mock="true">London, UK</button>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- @COMPONENT: EditTab [text and icon customization] -->
+                <div id="edit-content" class="tab-content hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Add Text</h3>
+                            <div class="space-y-3">
+                                <input type="text" placeholder="Enter your text" class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                                <select class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                                    <option>Select Font</option>
+                                    <option>Helvetica</option>
+                                    <option>Times New Roman</option>
+                                    <option>Arial</option>
+                                </select>
+                                <button class="w-full py-2 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm font-medium">Add Text to Map</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Icons</h3>
+                            <div class="grid grid-cols-4 gap-2">
+                                <!-- @MAP: iconLibrary.map(icon => ( -->
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center" data-implementation="Icon selection and placement">
+                                    <i class="fas fa-home text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-heart text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-star text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-coffee text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-tree text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-mountain text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-anchor text-lg text-muted-foreground"></i>
+                                </button>
+                                <button class="p-3 border border-border rounded-md hover:bg-accent transition-colors flex items-center justify-center">
+                                    <i class="fas fa-plane text-lg text-muted-foreground"></i>
+                                </button>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Compass</h3>
+                            <button class="w-full py-2 px-4 border border-border rounded-md hover:bg-accent transition-colors text-sm font-medium text-foreground">Add Compass</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- @COMPONENT: StyleTab [appearance customization] -->
+                <div id="style-content" class="tab-content hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Map Style</h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="style" value="bw" checked class="rounded border-border">
+                                    <span class="text-sm text-foreground">Black & White</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="style" value="inverted" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Inverted</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Text Options</h3>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" class="rounded border-border">
+                                <span class="text-sm text-foreground">Add white stroke border</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Background Overlay</h3>
+                            <div class="grid grid-cols-3 gap-2">
+                                <!-- @MAP: colorOptions.map(color => ( -->
+                                <button class="w-full h-8 rounded border border-border bg-white hover:ring-2 hover:ring-ring transition-all"></button>
+                                <button class="w-full h-8 rounded border border-border bg-blue-100 hover:ring-2 hover:ring-ring transition-all"></button>
+                                <button class="w-full h-8 rounded border border-border bg-green-100 hover:ring-2 hover:ring-ring transition-all"></button>
+                                <button class="w-full h-8 rounded border border-border bg-yellow-100 hover:ring-2 hover:ring-ring transition-all"></button>
+                                <button class="w-full h-8 rounded border border-border bg-red-100 hover:ring-2 hover:ring-ring transition-all"></button>
+                                <button class="w-full h-8 rounded border border-border bg-purple-100 hover:ring-2 hover:ring-ring transition-all"></button>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- @COMPONENT: PreviewTab [3D rendering options] -->
+                <div id="preview-content" class="tab-content hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Preview Mode</h3>
+                            <div class="space-y-2">
+                                <button class="w-full py-2 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm font-medium">2D Preview</button>
+                                <button class="w-full py-2 px-4 border border-border rounded-md hover:bg-accent transition-colors text-sm font-medium text-foreground">3D Rendering</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Export Quality</h3>
+                            <select class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                                <option>300 DPI (High Quality)</option>
+                                <option>150 DPI (Medium)</option>
+                                <option>72 DPI (Screen)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">File Format</h3>
+                            <select class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                                <option>JPEG (Recommended)</option>
+                                <option>PNG</option>
+                                <option>SVG</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- @COMPONENT: ProductsTab [product type selection] -->
+                <div id="products-content" class="tab-content hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Product Type</h3>
+                            <div class="space-y-2">
+                                <!-- @MAP: productTypes.map(product => ( -->
+                                <label class="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-accent transition-colors cursor-pointer">
+                                    <input type="radio" name="product" value="cutting-board" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Cutting Board</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-accent transition-colors cursor-pointer">
+                                    <input type="radio" name="product" value="ornament" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Ornament (Circle)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-accent transition-colors cursor-pointer">
+                                    <input type="radio" name="product" value="candle" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Candle</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-accent transition-colors cursor-pointer">
+                                    <input type="radio" name="product" value="stick" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Stick (Small Rectangle)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-accent transition-colors cursor-pointer">
+                                    <input type="radio" name="product" value="twig" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Twig (Long Rectangle)</span>
+                                </label>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Size Options</h3>
+                            <select class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                                <option>Small (8" x 10")</option>
+                                <option>Medium (12" x 16")</option>
+                                <option>Large (16" x 20")</option>
+                                <option>Extra Large (20" x 24")</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-foreground mb-3">Material</h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="material" value="wood" checked class="rounded border-border">
+                                    <span class="text-sm text-foreground">Wood</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="material" value="metal" class="rounded border-border">
+                                    <span class="text-sm text-foreground">Metal</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- @END_COMPONENT: Sidebar -->
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col bg-background">
+            <!-- @COMPONENT: MapCanvas [main map preview and editing area] -->
+            <div class="flex-1 p-6">
+                <div class="h-full flex flex-col">
+                    <!-- Map Controls -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 rounded-md bg-card border border-border hover:bg-accent transition-colors" data-implementation="Undo functionality">
+                                <i class="fas fa-undo text-muted-foreground"></i>
+                            </button>
+                            <button class="p-2 rounded-md bg-card border border-border hover:bg-accent transition-colors" data-implementation="Redo functionality">
+                                <i class="fas fa-redo text-muted-foreground"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <button class="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">Reset View</button>
+                            <div class="flex border border-border rounded-md bg-card">
+                                <button class="p-2 hover:bg-accent transition-colors" data-implementation="Zoom out functionality">
+                                    <i class="fas fa-minus text-muted-foreground"></i>
+                                </button>
+                                <button class="p-2 hover:bg-accent transition-colors border-l border-border" data-implementation="Zoom in functionality">
+                                    <i class="fas fa-plus text-muted-foreground"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Preview Container -->
+                    <div class="flex-1 flex items-center justify-center">
+                        <div class="relative max-w-4xl w-full">
+                            <!-- Map Preview with proper aspect ratio (2.62:1) -->
+                            <div class="map-aspect-ratio bg-card border-2 border-border rounded-lg shadow-lg overflow-hidden relative">
+                                <!-- Background map image with engraved style -->
+                                <!-- A detailed black and white engraved-style map of Paris showing streets, landmarks, and the Seine river -->
+                                <div class="w-full h-full bg-white relative" style="background-image: url('https://pixabay.com/get/gb5861e211af4b461d86d78548bc3f9e944435cf18b764afeecdac47afc35b335f1535b2fa96be21a133861aa9dfea1ec6cd53ffadfc023eeea36c33026ae53bd_1280.jpg'); background-size: cover; background-position: center; filter: grayscale(100%) contrast(150%);">
+                                    <!-- Map overlay for engraved effect -->
+                                    <div class="absolute inset-0 map-overlay"></div>
+                                    
+                                    <!-- Sample text overlay (movable) -->
+                                    <div class="absolute top-6 left-6 bg-white px-3 py-1 rounded shadow-sm border border-gray-300 cursor-move" data-mock="true" data-implementation="Draggable text component">
+                                        <span class="text-xs font-medium text-black">PARIS</span>
+                                    </div>
+                                    
+                                    <!-- Sample coordinates -->
+                                    <div class="absolute bottom-6 right-6 bg-white px-3 py-1 rounded shadow-sm border border-gray-300" data-mock="true">
+                                        <span class="text-xs text-black">48.8566°N / 2.3522°E</span>
+                                    </div>
+                                    
+                                    <!-- Sample compass -->
+                                    <div class="absolute bottom-6 left-6 bg-white p-2 rounded-full shadow-sm border border-gray-300" data-mock="true" data-implementation="Compass component">
+                                        <i class="fas fa-compass text-black text-lg"></i>
+                                    </div>
+                                    
+                                    <!-- Sample icon placement -->
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-2 rounded shadow-sm border border-gray-300 cursor-move" data-mock="true" data-implementation="Draggable icon component">
+                                        <i class="fas fa-heart text-black"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Resize handles -->
+                                <div class="absolute top-2 right-2 w-3 h-3 bg-primary rounded-full cursor-nw-resize" data-implementation="Resize functionality"></div>
+                                <div class="absolute bottom-2 right-2 w-3 h-3 bg-primary rounded-full cursor-se-resize" data-implementation="Resize functionality"></div>
+                                <div class="absolute bottom-2 left-2 w-3 h-3 bg-primary rounded-full cursor-sw-resize" data-implementation="Resize functionality"></div>
+                                <div class="absolute top-2 left-2 w-3 h-3 bg-primary rounded-full cursor-ne-resize" data-implementation="Resize functionality"></div>
+                            </div>
+                            
+                            <!-- Product Preview -->
+                            <div class="mt-6 flex justify-center">
+                                <div class="bg-card border border-border rounded-lg p-4 shadow-sm">
+                                    <h3 class="text-sm font-medium text-foreground mb-3">Product Preview</h3>
+                                    <div class="relative">
+                                        <!-- A wood cutting board with engraved map design mockup showing realistic wood grain texture -->
+                                        <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Wood cutting board product mockup" class="rounded-md shadow-sm w-64 h-48 object-cover" />
+                                        <!-- Overlay showing the map engraved onto the product -->
+                                        <div class="absolute inset-4 engraved-preview rounded opacity-60 flex items-center justify-center">
+                                            <span class="text-white text-xs font-medium bg-black bg-opacity-50 px-2 py-1 rounded">Map Preview</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground mt-2 text-center" data-bind="selectedProduct.name">Wooden Cutting Board - Medium</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: MapCanvas -->
+
+            <!-- Bottom Action Bar -->
+            <div class="border-t border-border bg-card p-4">
+                <div class="flex items-center justify-between max-w-4xl mx-auto">
+                    <div class="text-sm text-muted-foreground">
+                        <span data-bind="pricing.currency">$</span><span data-bind="pricing.amount" class="font-medium">64.99</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button class="px-6 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-accent transition-colors" data-implementation="Save draft functionality">Save Draft</button>
+                        <button class="px-6 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors" data-implementation="Add to Shopify cart">Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Responsive Menu Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" data-implementation="Mobile sidebar overlay"></div>
+
+    <script>
+        (function() {
+            // Sidebar toggle functionality
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const toggleIcon = toggleBtn.querySelector('i');
+            const sidebarTitle = document.getElementById('sidebar-title');
+            const tabTexts = document.querySelectorAll('.tab-text');
+            
+            let isCollapsed = false;
+
+            function toggleSidebar() {
+                isCollapsed = !isCollapsed;
+                
+                if (isCollapsed) {
+                    sidebar.style.width = '64px';
+                    toggleIcon.className = 'fas fa-chevron-right text-muted-foreground';
+                    sidebarTitle.style.display = 'none';
+                    tabTexts.forEach(text => text.style.display = 'none');
+                } else {
+                    sidebar.style.width = '280px';
+                    toggleIcon.className = 'fas fa-chevron-left text-muted-foreground';
+                    setTimeout(() => {
+                        sidebarTitle.style.display = 'block';
+                        tabTexts.forEach(text => text.style.display = 'inline');
+                    }, 150);
+                }
+            }
+
+            toggleBtn.addEventListener('click', toggleSidebar);
+
+            // Tab switching functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            function switchTab(tabName) {
+                // Update button states
+                tabButtons.forEach(btn => {
+                    if (btn.dataset.tab === tabName) {
+                        btn.className = 'tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-primary bg-accent transition-colors';
+                    } else {
+                        btn.className = 'tab-button w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors';
+                    }
+                });
+
+                // Update content visibility
+                tabContents.forEach(content => {
+                    if (content.id === tabName + '-content') {
+                        content.classList.remove('hidden');
+                    } else {
+                        content.classList.add('hidden');
+                    }
+                });
+            }
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+
+            // Mobile responsiveness
+            function handleResize() {
+                if (window.innerWidth < 1024) {
+                    if (!isCollapsed) {
+                        toggleSidebar();
+                    }
+                }
+            }
+
+            window.addEventListener('resize', handleResize);
+            handleResize(); // Check on initial load
+
+            // TODO: Implement business logic for:
+            // - Map search and location selection
+            // - Text overlay positioning and editing
+            // - Icon library and placement
+            // - Compass positioning
+            // - Zoom and pan controls
+            // - Undo/redo functionality
+            // - Product customization and pricing
+            // - File export and Shopify integration
+            // - 3D preview rendering
+            // - Drag and drop for map elements
+        })();
+    </script>
+</body>
+</html>

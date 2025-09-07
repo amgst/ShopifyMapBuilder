@@ -1,0 +1,741 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Map Builder - Engraved Map Design Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            },
+            fontFamily: {
+                sans: ["Inter", "system-ui", "sans-serif"],
+            }
+        },
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --background: hsl(220 20% 9%);
+            --foreground: hsl(210 40% 98%);
+            --card: hsl(220 15% 12%);
+            --card-foreground: hsl(210 40% 98%);
+            --popover: hsl(220 15% 12%);
+            --popover-foreground: hsl(210 40% 98%);
+            --primary: hsl(217 91% 60%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(220 15% 16%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(220 15% 16%);
+            --muted-foreground: hsl(215 20% 65%);
+            --accent: hsl(220 15% 16%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 63% 31%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(220 13% 18%);
+            --input: hsl(220 13% 18%);
+            --ring: hsl(217 91% 60%);
+            --radius: 8px;
+        }
+        
+        .map-preview {
+            aspect-ratio: 2.62 / 1;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .wood-texture {
+            background-image: 
+                radial-gradient(circle at 25% 25%, #8b4513 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, #a0522d 0%, transparent 50%),
+                linear-gradient(45deg, #cd853f 25%, transparent 25%),
+                linear-gradient(-45deg, #daa520 25%, transparent 25%);
+            background-size: 4px 4px, 6px 6px, 8px 8px, 8px 8px;
+        }
+        
+        .panel-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .tab-icon {
+            transition: all 0.2s ease;
+        }
+        
+        .tab-active {
+            background: var(--primary);
+            color: var(--primary-foreground);
+        }
+        
+        .draggable-text {
+            cursor: move;
+            user-select: none;
+        }
+        
+        .draggable-text:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans overflow-hidden">
+    <!-- @COMPONENT: MainLayout -->
+    <div class="flex h-screen">
+        <!-- @COMPONENT: LeftTabBar -->
+        <div class="w-16 bg-card border-r border-border flex flex-col items-center py-4 space-y-2 z-20">
+            <!-- Logo/Brand -->
+            <div class="mb-6 p-2">
+                <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+                    <i class="fas fa-map text-sm text-primary-foreground"></i>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <button data-tab="location" class="tab-button tab-active w-12 h-12 rounded-lg flex items-center justify-center tab-icon hover:bg-secondary group">
+                <i class="fas fa-location-dot text-lg" data-tooltip="Location"></i>
+            </button>
+            
+            <button data-tab="text" class="tab-button w-12 h-12 rounded-lg flex items-center justify-center tab-icon hover:bg-secondary group">
+                <i class="fas fa-font text-lg" data-tooltip="Text"></i>
+            </button>
+            
+            <button data-tab="icons" class="tab-button w-12 h-12 rounded-lg flex items-center justify-center tab-icon hover:bg-secondary group">
+                <i class="fas fa-icons text-lg" data-tooltip="Icons"></i>
+            </button>
+            
+            <button data-tab="style" class="tab-button w-12 h-12 rounded-lg flex items-center justify-center tab-icon hover:bg-secondary group">
+                <i class="fas fa-palette text-lg" data-tooltip="Style"></i>
+            </button>
+            
+            <button data-tab="preview" class="tab-button w-12 h-12 rounded-lg flex items-center justify-center tab-icon hover:bg-secondary group">
+                <i class="fas fa-eye text-lg" data-tooltip="Preview"></i>
+            </button>
+            
+            <!-- Spacer -->
+            <div class="flex-1"></div>
+            
+            <!-- Settings -->
+            <button class="w-12 h-12 rounded-lg flex items-center justify-center tab-icon hover:bg-secondary">
+                <i class="fas fa-cog text-lg"></i>
+            </button>
+        </div>
+        <!-- @END_COMPONENT: LeftTabBar -->
+        
+        <!-- @COMPONENT: FunctionPanel -->
+        <div id="functionPanel" class="w-80 bg-card border-r border-border panel-transition overflow-y-auto">
+            <!-- Panel Header -->
+            <div class="flex items-center justify-between p-4 border-b border-border">
+                <h2 id="panelTitle" class="text-lg font-semibold">Location</h2>
+                <button id="togglePanel" class="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center">
+                    <i class="fas fa-angles-left text-sm"></i>
+                </button>
+            </div>
+            
+            <!-- Location Panel Content -->
+            <div id="locationPanel" class="panel-content p-4 space-y-6">
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">SEARCH FOR A PLACE</h3>
+                    <div class="relative">
+                        <input type="text" placeholder="Search for location, street or landmark" 
+                               class="w-full bg-input border border-border rounded-md px-3 py-2 text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                        <i class="fas fa-search absolute right-3 top-2.5 text-muted-foreground text-sm"></i>
+                    </div>
+                    
+                    <label class="flex items-center mt-3 text-sm">
+                        <input type="checkbox" class="mr-2 rounded">
+                        <span>Use your current position</span>
+                    </label>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">OTHER POPULAR PLACES</h3>
+                    <div class="space-y-2">
+                        <div class="p-3 rounded-md hover:bg-secondary cursor-pointer text-sm">Paris, France</div>
+                        <div class="p-3 rounded-md hover:bg-secondary cursor-pointer text-sm">Stockholm, Sweden</div>
+                        <div class="p-3 rounded-md hover:bg-secondary cursor-pointer text-sm">Berlin, Germany</div>
+                        <div class="p-3 rounded-md hover:bg-secondary cursor-pointer text-sm">Tokyo, Japan</div>
+                        <div class="p-3 rounded-md hover:bg-secondary cursor-pointer text-sm">London, UK</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">MAP CONTROLS</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="bg-secondary hover:bg-accent rounded-md py-2 px-3 text-sm flex items-center justify-center">
+                            <i class="fas fa-search-plus mr-2"></i>Zoom In
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-2 px-3 text-sm flex items-center justify-center">
+                            <i class="fas fa-search-minus mr-2"></i>Zoom Out
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-2 px-3 text-sm flex items-center justify-center">
+                            <i class="fas fa-arrows-alt mr-2"></i>Center
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-2 px-3 text-sm flex items-center justify-center">
+                            <i class="fas fa-undo mr-2"></i>Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Text Panel Content -->
+            <div id="textPanel" class="panel-content p-4 space-y-6 hidden">
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">ADD TEXT</h3>
+                    <button class="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-md py-2 px-4 text-sm font-medium">
+                        <i class="fas fa-plus mr-2"></i>Add Text Element
+                    </button>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">TEXT SETTINGS</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium mb-2">Text Content</label>
+                            <input type="text" placeholder="Enter your text" 
+                                   class="w-full bg-input border border-border rounded-md px-3 py-2 text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium mb-2">Font Family</label>
+                            <select class="w-full bg-input border border-border rounded-md px-3 py-2 text-sm">
+                                <option>Inter (Recommended)</option>
+                                <option>Roboto</option>
+                                <option>Arial</option>
+                                <option>Helvetica</option>
+                            </select>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-2">Size</label>
+                                <input type="range" min="12" max="48" value="16" class="w-full">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-2">Weight</label>
+                                <select class="w-full bg-input border border-border rounded-md px-2 py-1 text-sm">
+                                    <option>Normal</option>
+                                    <option>Bold</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium mb-2">Border Style</label>
+                            <div class="flex space-x-2">
+                                <button class="flex-1 bg-secondary hover:bg-accent rounded-md py-2 text-sm">None</button>
+                                <button class="flex-1 bg-secondary hover:bg-accent rounded-md py-2 text-sm">White Stroke</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">POSITIONING</h3>
+                    <p class="text-xs text-muted-foreground mb-3">Drag text elements directly on the preview to position them</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="bg-secondary hover:bg-accent rounded-md py-2 px-3 text-sm">
+                            <i class="fas fa-arrows-alt mr-2"></i>Free Move
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-2 px-3 text-sm">
+                            <i class="fas fa-grip-lines mr-2"></i>Snap to Grid
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Icons Panel Content -->
+            <div id="iconsPanel" class="panel-content p-4 space-y-6 hidden">
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">COMPASS</h3>
+                    <button class="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-md py-2 px-4 text-sm font-medium">
+                        <i class="fas fa-compass mr-2"></i>Add Compass
+                    </button>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">ICON LIBRARY</h3>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-home"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-flag"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-map-pin"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-tree"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-mountain"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-anchor"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-ship"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-plane"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-car"></i>
+                        </button>
+                        <button class="aspect-square bg-secondary hover:bg-accent rounded-md flex items-center justify-center text-lg">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">ICON SETTINGS</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium mb-2">Size</label>
+                            <input type="range" min="16" max="64" value="24" class="w-full">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium mb-2">Style</label>
+                            <div class="flex space-x-2">
+                                <button class="flex-1 bg-secondary hover:bg-accent rounded-md py-2 text-sm">Fill</button>
+                                <button class="flex-1 bg-secondary hover:bg-accent rounded-md py-2 text-sm">Outline</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Style Panel Content -->
+            <div id="stylePanel" class="panel-content p-4 space-y-6 hidden">
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">PRODUCT SHAPE</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="bg-secondary hover:bg-accent rounded-md py-3 px-4 text-sm font-medium border-2 border-primary">
+                            <div class="w-8 h-5 bg-foreground rounded-sm mx-auto mb-2"></div>
+                            Rectangle
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-3 px-4 text-sm font-medium">
+                            <div class="w-6 h-6 bg-foreground rounded-full mx-auto mb-2"></div>
+                            Circle
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-3 px-4 text-sm font-medium">
+                            <div class="w-10 h-3 bg-foreground rounded-sm mx-auto mb-2"></div>
+                            Stick
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md py-3 px-4 text-sm font-medium">
+                            <div class="w-12 h-2 bg-foreground rounded-sm mx-auto mb-2"></div>
+                            Twig
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">ASPECT RATIO</h3>
+                    <div class="space-y-2">
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm text-left border-2 border-primary">
+                            2.62:1 (Standard) - $49
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm text-left">
+                            1.38:1 (Square-ish) - $59
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm text-left">
+                            3.10:1 (Panoramic) - $69
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">ORIENTATION</h3>
+                    <div class="flex space-x-3">
+                        <button class="flex-1 bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm border-2 border-primary">
+                            <i class="fas fa-crop-alt mr-2"></i>Landscape
+                        </button>
+                        <button class="flex-1 bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm">
+                            <i class="fas fa-crop-alt fa-rotate-90 mr-2"></i>Portrait
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">SUBSTRATE</h3>
+                    <div class="space-y-2">
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm text-left border-2 border-primary">
+                            <i class="fas fa-tree mr-2"></i>Wood Engraving
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm text-left">
+                            <i class="fas fa-layer-group mr-2"></i>Metal Engraving
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm text-left">
+                            <i class="fas fa-print mr-2"></i>Elevated Print
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">PRODUCT CATEGORY</h3>
+                    <select class="w-full bg-input border border-border rounded-md px-3 py-2 text-sm">
+                        <option>Cutting Boards</option>
+                        <option>Ornaments</option>
+                        <option>Candles</option>
+                        <option>Wall Art</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Preview Panel Content -->
+            <div id="previewPanel" class="panel-content p-4 space-y-6 hidden">
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">EXPORT SETTINGS</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium mb-2">Resolution</label>
+                            <select class="w-full bg-input border border-border rounded-md px-3 py-2 text-sm">
+                                <option>300 DPI (Recommended)</option>
+                                <option>150 DPI</option>
+                                <option>72 DPI</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium mb-2">File Format</label>
+                            <select class="w-full bg-input border border-border rounded-md px-3 py-2 text-sm">
+                                <option>JPEG (High Quality)</option>
+                                <option>PNG</option>
+                                <option>PDF</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">PREVIEW OPTIONS</h3>
+                    <div class="space-y-3">
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm">
+                            <i class="fas fa-eye mr-2"></i>Show Final Engraving
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm">
+                            <i class="fas fa-cube mr-2"></i>3D Product View
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm">
+                            <i class="fas fa-palette mr-2"></i>Color Overlay Preview
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">ACTIONS</h3>
+                    <div class="space-y-3">
+                        <button class="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-md py-2 px-4 text-sm font-medium">
+                            <i class="fas fa-shopping-cart mr-2"></i>Add to Cart - $49
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm">
+                            <i class="fas fa-save mr-2"></i>Save Draft
+                        </button>
+                        <button class="w-full bg-secondary hover:bg-accent rounded-md py-2 px-4 text-sm">
+                            <i class="fas fa-share mr-2"></i>Share Design
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: FunctionPanel -->
+        
+        <!-- @COMPONENT: PreviewArea -->
+        <div class="flex-1 bg-background p-6 overflow-hidden">
+            <div class="h-full flex flex-col">
+                <!-- Preview Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold mb-1">Custom Map Preview</h1>
+                        <p class="text-muted-foreground text-sm">Real-time preview of your engraved map design</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <div class="text-sm text-muted-foreground">
+                            <span class="font-medium">29%</span> - Map zoomed in
+                        </div>
+                        <button class="bg-secondary hover:bg-accent rounded-md p-2">
+                            <i class="fas fa-expand text-sm"></i>
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md p-2">
+                            <i class="fas fa-undo text-sm"></i>
+                        </button>
+                        <button class="bg-secondary hover:bg-accent rounded-md p-2">
+                            <i class="fas fa-redo text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Map Preview Container -->
+                <div class="flex-1 bg-muted rounded-xl p-8 flex items-center justify-center relative overflow-hidden">
+                    <!-- Product Frame -->
+                    <div class="relative map-preview bg-white rounded-lg shadow-2xl border-4 border-gray-800 max-w-4xl w-full">
+                        <!-- Map Background -->
+                        <!-- Black and white map showing Paris streets and landmarks -->
+                        <div class="absolute inset-0 bg-white overflow-hidden rounded-lg">
+                            <img src="https://pixabay.com/get/g51b429cafc7baa403894a9193b1a2e508a0ef86f4db39f2e045e7035d56957d75e07dde6a7db51ca27bf8021949d94a1001cedce61fe4c6a48d9a1ce18aaeb23_1280.jpg" 
+                                 alt="Black and white map of Paris showing streets and landmarks" 
+                                 class="w-full h-full object-cover grayscale"
+                                 style="filter: grayscale(100%) contrast(1.2) brightness(1.1);">
+                        </div>
+                        
+                        <!-- Wood Engraving Effect Overlay -->
+                        <div class="absolute inset-0 wood-texture opacity-30 mix-blend-multiply"></div>
+                        
+                        <!-- Text Overlays -->
+                        <div class="absolute top-8 left-8 draggable-text p-2 rounded">
+                            <div class="text-black font-bold text-2xl" style="text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;">
+                                PARIS
+                            </div>
+                            <div class="text-black font-normal text-sm mt-1" style="text-shadow: 1px 1px 0 white, -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white;">
+                                FRANCE
+                            </div>
+                        </div>
+                        
+                        <div class="absolute bottom-8 right-8 draggable-text p-2 rounded">
+                            <div class="text-black font-medium text-lg" style="text-shadow: 1px 1px 0 white, -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white;">
+                                48.8566° N / 2.3522° E
+                            </div>
+                        </div>
+                        
+                        <!-- Compass Icon -->
+                        <div class="absolute top-8 right-8 draggable-text p-2">
+                            <i class="fas fa-compass text-black text-3xl" style="text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;"></i>
+                        </div>
+                        
+                        <!-- Icons -->
+                        <div class="absolute top-1/2 left-1/3 draggable-text p-1">
+                            <i class="fas fa-heart text-black text-xl" style="text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;"></i>
+                        </div>
+                        
+                        <!-- Selection Frame -->
+                        <div class="absolute inset-0 border-2 border-dashed border-primary opacity-50 rounded-lg"></div>
+                        
+                        <!-- Corner Handles -->
+                        <div class="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nw-resize"></div>
+                        <div class="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-ne-resize"></div>
+                        <div class="absolute -bottom-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-sw-resize"></div>
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-se-resize"></div>
+                    </div>
+                    
+                    <!-- Zoom Controls -->
+                    <div class="absolute bottom-6 left-6 bg-card border border-border rounded-lg p-2 flex flex-col space-y-2">
+                        <button class="w-8 h-8 bg-secondary hover:bg-accent rounded flex items-center justify-center text-sm">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="w-8 h-8 bg-secondary hover:bg-accent rounded flex items-center justify-center text-sm">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Layer Panel -->
+                    <div class="absolute top-6 right-6 bg-card border border-border rounded-lg p-4 w-64">
+                        <h4 class="text-sm font-medium mb-3">Layers</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between p-2 bg-secondary rounded text-sm">
+                                <span><i class="fas fa-map mr-2"></i>Map Base</span>
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-secondary rounded text-sm">
+                                <span><i class="fas fa-font mr-2"></i>Paris Label</span>
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-secondary rounded text-sm">
+                                <span><i class="fas fa-compass mr-2"></i>Compass</span>
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-secondary rounded text-sm">
+                                <span><i class="fas fa-heart mr-2"></i>Heart Icon</span>
+                                <i class="fas fa-eye"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Bar -->
+                <div class="flex items-center justify-between mt-6 text-sm text-muted-foreground">
+                    <div class="flex items-center space-x-6">
+                        <span>Resolution: 300 DPI</span>
+                        <span>Size: 2.62:1 Landscape</span>
+                        <span>Format: JPEG</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span>Auto-save enabled</span>
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: PreviewArea -->
+    </div>
+    <!-- @END_COMPONENT: MainLayout -->
+
+    <script>
+        (function() {
+            // Tab switching functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const panelContents = document.querySelectorAll('.panel-content');
+            const panelTitle = document.getElementById('panelTitle');
+            
+            function switchTab(tabName) {
+                // Remove active class from all tabs
+                tabButtons.forEach(btn => btn.classList.remove('tab-active'));
+                
+                // Hide all panel contents
+                panelContents.forEach(content => content.classList.add('hidden'));
+                
+                // Show selected panel content
+                const selectedPanel = document.getElementById(tabName + 'Panel');
+                if (selectedPanel) {
+                    selectedPanel.classList.remove('hidden');
+                }
+                
+                // Update panel title
+                const titles = {
+                    'location': 'Location',
+                    'text': 'Text',
+                    'icons': 'Icons',
+                    'style': 'Style',
+                    'preview': 'Preview'
+                };
+                panelTitle.textContent = titles[tabName] || 'Unknown';
+                
+                // Add active class to clicked tab
+                const clickedTab = document.querySelector(`[data-tab="${tabName}"]`);
+                if (clickedTab) {
+                    clickedTab.classList.add('tab-active');
+                }
+            }
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchTab(tabName);
+                });
+            });
+            
+            // Panel toggle functionality
+            const togglePanel = document.getElementById('togglePanel');
+            const functionPanel = document.getElementById('functionPanel');
+            let isPanelExpanded = true;
+            
+            togglePanel.addEventListener('click', function() {
+                if (isPanelExpanded) {
+                    functionPanel.style.width = '0px';
+                    functionPanel.style.minWidth = '0px';
+                    this.innerHTML = '<i class="fas fa-angles-right text-sm"></i>';
+                } else {
+                    functionPanel.style.width = '320px';
+                    functionPanel.style.minWidth = '320px';
+                    this.innerHTML = '<i class="fas fa-angles-left text-sm"></i>';
+                }
+                isPanelExpanded = !isPanelExpanded;
+            });
+            
+            // Draggable text elements
+            let isDragging = false;
+            let currentDragElement = null;
+            let dragOffset = { x: 0, y: 0 };
+            
+            document.querySelectorAll('.draggable-text').forEach(element => {
+                element.addEventListener('mousedown', function(e) {
+                    isDragging = true;
+                    currentDragElement = this;
+                    const rect = this.getBoundingClientRect();
+                    dragOffset.x = e.clientX - rect.left;
+                    dragOffset.y = e.clientY - rect.top;
+                    this.style.cursor = 'grabbing';
+                    e.preventDefault();
+                });
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging && currentDragElement) {
+                    const container = currentDragElement.closest('.map-preview');
+                    const containerRect = container.getBoundingClientRect();
+                    
+                    const newX = e.clientX - containerRect.left - dragOffset.x;
+                    const newY = e.clientY - containerRect.top - dragOffset.y;
+                    
+                    // Keep within bounds
+                    const maxX = container.offsetWidth - currentDragElement.offsetWidth;
+                    const maxY = container.offsetHeight - currentDragElement.offsetHeight;
+                    
+                    const clampedX = Math.max(0, Math.min(newX, maxX));
+                    const clampedY = Math.max(0, Math.min(newY, maxY));
+                    
+                    currentDragElement.style.left = clampedX + 'px';
+                    currentDragElement.style.top = clampedY + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    if (currentDragElement) {
+                        currentDragElement.style.cursor = 'move';
+                        currentDragElement = null;
+                    }
+                }
+            });
+            
+            // TODO: Implement map API integration for location search
+            // TODO: Implement file generation and Shopify integration
+            // TODO: Implement 3D preview functionality
+            // TODO: Add form validation and error handling
+            // TODO: Implement undo/redo functionality
+            // TODO: Add keyboard shortcuts
+            // TODO: Implement auto-save functionality
+            
+        })();
+    </script>
+</body>
+</html>

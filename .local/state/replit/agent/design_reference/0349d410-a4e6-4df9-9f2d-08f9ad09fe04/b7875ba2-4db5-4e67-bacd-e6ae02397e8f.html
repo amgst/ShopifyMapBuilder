@@ -1,0 +1,676 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Map Builder - Professional Design Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        popover: {
+                            DEFAULT: "var(--popover)",
+                            foreground: "var(--popover-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        destructive: {
+                            DEFAULT: "var(--destructive)",
+                            foreground: "var(--destructive-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "system-ui", "sans-serif"],
+                    },
+                    animation: {
+                        'slide-in': 'slideIn 0.3s ease-out',
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                    }
+                },
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --background: hsl(0 0% 100%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(214 100% 59%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222.2 84% 4.9%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222.2 84% 4.9%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(214 100% 59%);
+            --radius: 0.5rem;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .wood-texture {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                linear-gradient(45deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+        }
+
+        .engraved-effect {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(255,255,255,0.1);
+        }
+
+        .map-container {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-background text-foreground font-sans">
+    <!-- @COMPONENT: MainLayout -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Left Sidebar -->
+        <!-- @COMPONENT: Sidebar [collapsible, icon-based navigation] -->
+        <div id="sidebar" class="relative bg-card border-r border-border transition-all duration-300 ease-in-out" style="width: 60px;">
+            
+            <!-- Navigation Icons -->
+            <div class="flex flex-col h-full">
+                <div class="p-4 border-b border-border">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-map text-primary-foreground text-sm"></i>
+                    </div>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <nav class="flex-1 p-2">
+                    <div class="space-y-2">
+                        <!-- Location Tab -->
+                        <button class="tab-btn w-full p-3 rounded-lg text-left transition-colors bg-primary text-primary-foreground" data-tab="location">
+                            <i class="fas fa-map-marker-alt text-lg"></i>
+                            <span class="ml-3 tab-label hidden">Location</span>
+                        </button>
+                        
+                        <!-- Text Tab -->
+                        <button class="tab-btn w-full p-3 rounded-lg text-left transition-colors hover:bg-muted" data-tab="text">
+                            <i class="fas fa-font text-lg"></i>
+                            <span class="ml-3 tab-label hidden">Text</span>
+                        </button>
+                        
+                        <!-- Icons Tab -->
+                        <button class="tab-btn w-full p-3 rounded-lg text-left transition-colors hover:bg-muted" data-tab="icons">
+                            <i class="fas fa-icons text-lg"></i>
+                            <span class="ml-3 tab-label hidden">Icons</span>
+                        </button>
+                        
+                        <!-- Style Tab -->
+                        <button class="tab-btn w-full p-3 rounded-lg text-left transition-colors hover:bg-muted" data-tab="style">
+                            <i class="fas fa-palette text-lg"></i>
+                            <span class="ml-3 tab-label hidden">Style</span>
+                        </button>
+                        
+                        <!-- Preview Tab -->
+                        <button class="tab-btn w-full p-3 rounded-lg text-left transition-colors hover:bg-muted" data-tab="preview">
+                            <i class="fas fa-eye text-lg"></i>
+                            <span class="ml-3 tab-label hidden">Preview</span>
+                        </button>
+                    </div>
+                </nav>
+                
+                <!-- Bottom Toggle Button -->
+                <div class="p-4 border-t border-border">
+                    <button id="toggleSidebar" class="w-full p-2 rounded-lg hover:bg-muted transition-colors">
+                        <i class="fas fa-chevron-right text-lg" id="toggleIcon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Sidebar -->
+        
+        <!-- Function Panel -->
+        <!-- @COMPONENT: FunctionPanel [dynamic content based on selected tab] -->
+        <div id="functionPanel" class="bg-card border-r border-border transition-all duration-300" style="width: 350px;">
+            
+            <!-- Location Panel -->
+            <div id="location-panel" class="panel h-full p-6">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold mb-2">Location</h2>
+                    <p class="text-muted-foreground text-sm">You can search, drag/drop and zoom on the map to get the exact position you want on your engraved map.</p>
+                </div>
+                
+                <!-- Search Section -->
+                <div class="mb-6">
+                    <h3 class="font-medium mb-3">SEARCH FOR A PLACE</h3>
+                    <div class="relative mb-4">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"></i>
+                        <input type="text" placeholder="Search for a location, street or landmark" class="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent">
+                    </div>
+                    <div class="flex items-center text-sm text-muted-foreground">
+                        <i class="fas fa-location-arrow mr-2"></i>
+                        <span>Use your current position</span>
+                    </div>
+                </div>
+                
+                <!-- Popular Places -->
+                <div class="mb-6">
+                    <h3 class="font-medium mb-3">OTHER POPULAR PLACES</h3>
+                    <p class="text-sm text-muted-foreground mb-4">These are some of the most popular places among customers and staff, and worth checking out if you want your map to look great.</p>
+                    
+                    <div class="space-y-2">
+                        <div class="p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors">
+                            <div class="font-medium">Paris, France</div>
+                        </div>
+                        <div class="p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors">
+                            <div class="font-medium">Stockholm, Sweden</div>
+                        </div>
+                        <div class="p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors">
+                            <div class="font-medium">Berlin, Germany</div>
+                        </div>
+                        <div class="p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors">
+                            <div class="font-medium">Tokyo, Japan</div>
+                        </div>
+                        <div class="p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors">
+                            <div class="font-medium">London, UK</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Map Controls -->
+                <div class="mb-6">
+                    <h3 class="font-medium mb-3">MAP CONTROLS</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors flex items-center justify-center">
+                            <i class="fas fa-search-plus mr-2"></i>
+                            Zoom In
+                        </button>
+                        <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors flex items-center justify-center">
+                            <i class="fas fa-search-minus mr-2"></i>
+                            Zoom Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Text Panel -->
+            <div id="text-panel" class="panel h-full p-6 hidden">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold mb-2">Text Customization</h2>
+                    <p class="text-muted-foreground text-sm">Add custom text to your engraved map with professional typography options.</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block font-medium mb-2">Add Text</label>
+                        <input type="text" placeholder="Enter your custom text" class="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-ring">
+                    </div>
+                    
+                    <div>
+                        <label class="block font-medium mb-2">Font Style</label>
+                        <select class="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-ring">
+                            <option>Inter Regular</option>
+                            <option>Inter Medium</option>
+                            <option>Inter Bold</option>
+                            <option>Playfair Display</option>
+                            <option>Source Sans Pro</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block font-medium mb-2">Font Size</label>
+                        <input type="range" min="12" max="48" value="24" class="w-full">
+                        <div class="flex justify-between text-sm text-muted-foreground mt-1">
+                            <span>12px</span>
+                            <span>48px</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block font-medium mb-2">Text Color</label>
+                        <div class="flex space-x-3">
+                            <button class="w-12 h-12 border-2 border-foreground bg-foreground rounded-lg"></button>
+                            <button class="w-12 h-12 border-2 border-border bg-background rounded-lg"></button>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:bg-primary/90 transition-colors">
+                        Add Text to Map
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Icons Panel -->
+            <div id="icons-panel" class="panel h-full p-6 hidden">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold mb-2">Icons & Compass</h2>
+                    <p class="text-muted-foreground text-sm">Add compass and custom icons to enhance your engraved map design.</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="font-medium mb-3">Compass</h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button class="p-4 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-compass text-2xl mb-2"></i>
+                                <div class="text-xs">Classic</div>
+                            </button>
+                            <button class="p-4 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="far fa-compass text-2xl mb-2"></i>
+                                <div class="text-xs">Modern</div>
+                            </button>
+                            <button class="p-4 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-location-arrow text-2xl mb-2"></i>
+                                <div class="text-xs">Arrow</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-medium mb-3">Map Icons</h3>
+                        <div class="grid grid-cols-4 gap-3">
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-home text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-heart text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-star text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-map-pin text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-tree text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-mountain text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-anchor text-lg"></i>
+                            </button>
+                            <button class="p-3 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <i class="fas fa-plane text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Style Panel -->
+            <div id="style-panel" class="panel h-full p-6 hidden">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold mb-2">Product Style</h2>
+                    <p class="text-muted-foreground text-sm">Choose your product shape, size, and engraving style options.</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="font-medium mb-3">Product Shape</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="p-4 border-2 border-primary bg-primary/10 rounded-lg transition-colors text-center">
+                                <div class="w-16 h-10 bg-foreground/20 rounded mx-auto mb-2"></div>
+                                <div class="text-sm font-medium">Rectangle</div>
+                            </button>
+                            <button class="p-4 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <div class="w-10 h-10 bg-foreground/20 rounded-full mx-auto mb-2"></div>
+                                <div class="text-sm">Circle</div>
+                            </button>
+                            <button class="p-4 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <div class="w-20 h-6 bg-foreground/20 rounded mx-auto mb-2"></div>
+                                <div class="text-sm">Stick</div>
+                            </button>
+                            <button class="p-4 border border-border rounded-lg hover:bg-muted transition-colors text-center">
+                                <div class="w-24 h-4 bg-foreground/20 rounded mx-auto mb-2"></div>
+                                <div class="text-sm">Twig</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-medium mb-3">Size Options</h3>
+                        <div class="space-y-2">
+                            <button class="w-full p-3 border-2 border-primary bg-primary/10 rounded-lg text-left">
+                                <div class="font-medium">12" × 8" Standard</div>
+                                <div class="text-sm text-muted-foreground">Perfect for detailed maps</div>
+                            </button>
+                            <button class="w-full p-3 border border-border rounded-lg hover:bg-muted text-left">
+                                <div class="font-medium">16" × 10" Large</div>
+                                <div class="text-sm text-muted-foreground">Premium size option</div>
+                            </button>
+                            <button class="w-full p-3 border border-border rounded-lg hover:bg-muted text-left">
+                                <div class="font-medium">8" × 6" Compact</div>
+                                <div class="text-sm text-muted-foreground">Great for smaller spaces</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-medium mb-3">Material</h3>
+                        <div class="space-y-2">
+                            <button class="w-full p-3 border-2 border-primary bg-primary/10 rounded-lg text-left">
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 wood-texture rounded mr-3"></div>
+                                    <div>
+                                        <div class="font-medium">Premium Wood</div>
+                                        <div class="text-sm text-muted-foreground">Natural wood finish</div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button class="w-full p-3 border border-border rounded-lg hover:bg-muted text-left">
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-gray-300 rounded mr-3"></div>
+                                    <div>
+                                        <div class="font-medium">Brushed Metal</div>
+                                        <div class="text-sm text-muted-foreground">Modern metal finish</div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Panel -->
+            <div id="preview-panel" class="panel h-full p-6 hidden">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold mb-2">Final Preview</h2>
+                    <p class="text-muted-foreground text-sm">Review your custom engraved map before finalizing your order.</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <div class="bg-muted rounded-lg p-4">
+                        <h3 class="font-medium mb-2">Order Summary</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Product:</span>
+                                <span>12" × 8" Wood Rectangle</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Location:</span>
+                                <span>Paris, France</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Customizations:</span>
+                                <span>Text, Compass</span>
+                            </div>
+                            <div class="flex justify-between font-medium pt-2 border-t border-border">
+                                <span>Total:</span>
+                                <span>$64.99</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button class="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                            Add to Cart
+                        </button>
+                        <button class="w-full border border-border py-3 rounded-lg hover:bg-muted transition-colors">
+                            Save Design
+                        </button>
+                    </div>
+                    
+                    <div class="text-xs text-muted-foreground">
+                        <p>• High-quality engraving at 300 DPI resolution</p>
+                        <p>• Black and white design as shown in preview</p>
+                        <p>• Processing time: 3-5 business days</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: FunctionPanel -->
+        
+        <!-- Preview Section -->
+        <!-- @COMPONENT: PreviewSection [fixed right panel with product preview] -->
+        <div class="flex-1 bg-muted/30 p-6 overflow-auto">
+            <div class="max-w-2xl mx-auto">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold mb-2">Live Preview</h2>
+                    <p class="text-muted-foreground">See how your custom engraved map will look on the selected product.</p>
+                </div>
+                
+                <!-- Product Preview -->
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <div class="relative">
+                        <!-- Wooden cutting board background -->
+                        <!-- A beautiful wooden cutting board with natural grain patterns -->
+                        <img src="https://pixabay.com/get/g9199f74a3cf733663fa098904560a2d34fbb76b1c2ecfd0443bd42507fbb5a9ae8c2cc696fd406b44c3d7a720ae3acf90cbe19cd2b4171ce0646c892bbd6acad_1280.jpg" 
+                             alt="Wooden cutting board with natural grain" 
+                             class="w-full rounded-lg shadow-md" />
+                        
+                        <!-- Map overlay with engraved effect -->
+                        <div class="absolute inset-0 m-8 bg-background rounded engraved-effect overflow-hidden">
+                            <!-- Map preview area with 2.62:1 aspect ratio -->
+                            <div class="w-full h-full relative map-container">
+                                <!-- Simplified map representation -->
+                                <div class="absolute inset-4 bg-white rounded">
+                                    <!-- Paris map representation -->
+                                    <div class="w-full h-full relative overflow-hidden rounded">
+                                        <!-- A detailed street map of Paris with the Seine river -->
+                                        <img src="https://pixabay.com/get/g97a97e9c74d8acbdbe501c76c63cc46f103bbafc6852e4c53b40ef5d2883ffa81bbb959f7355ca1969cb9ff93c4a74781ff92fb2b78826603315a351c0fad4dc_1280.jpg" 
+                                             alt="Detailed map of Paris showing streets and the Seine river" 
+                                             class="w-full h-full object-cover filter contrast-150 grayscale" />
+                                        
+                                        <!-- Map overlays -->
+                                        <div class="absolute inset-0 bg-black/10"></div>
+                                        
+                                        <!-- Custom text overlay -->
+                                        <div class="absolute top-4 left-4 bg-black text-white px-3 py-1 rounded text-sm font-medium">
+                                            PARIS
+                                        </div>
+                                        <div class="absolute top-4 left-4 mt-8 bg-black text-white px-3 py-1 rounded text-xs">
+                                            FRANCE
+                                        </div>
+                                        
+                                        <!-- Compass overlay -->
+                                        <div class="absolute bottom-4 right-4 w-12 h-12 bg-black text-white rounded-full flex items-center justify-center">
+                                            <i class="fas fa-compass text-lg"></i>
+                                        </div>
+                                        
+                                        <!-- Coordinates -->
+                                        <div class="absolute bottom-4 left-4 bg-black text-white px-2 py-1 rounded text-xs font-mono">
+                                            48.8566°N / 2.3522°E
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Preview Controls -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <h4 class="font-medium mb-2">Material</h4>
+                        <p class="text-sm text-muted-foreground">Premium Wood</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <h4 class="font-medium mb-2">Size</h4>
+                        <p class="text-sm text-muted-foreground">12" × 8"</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <h4 class="font-medium mb-2">Finish</h4>
+                        <p class="text-sm text-muted-foreground">Laser Engraved</p>
+                    </div>
+                </div>
+                
+                <!-- Alternative Product Views -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="font-semibold mb-4">Other Product Options</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Circular ornament -->
+                        <div class="text-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                            <!-- A round wooden ornament with map engraving -->
+                            <img src="https://pixabay.com/get/gcc552b13c725e93e2868af15203a955ec8a65bc7a2f50e31aa722c2303086218c1a362e9b636db20e9d8caebfbd101d6fdd601af2f15fbe0cf25ed066a78c977_1280.jpg" 
+                                 alt="Round wooden ornament with engraved map design" 
+                                 class="w-full h-32 object-cover rounded-lg mb-2" />
+                            <p class="text-sm font-medium">Ornament</p>
+                            <p class="text-xs text-muted-foreground">$29.99</p>
+                        </div>
+                        
+                        <!-- Candle with map -->
+                        <div class="text-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                            <!-- A wooden candle holder with engraved map -->
+                            <img src="https://pixabay.com/get/g200f33da0798ce7b2fff4404911c20adc5155049ddb8d43603fca4712b9679ef33afe898364192fbd7131ad80607290cf5f5e18eea574848346162830e304de0_1280.jpg" 
+                                 alt="Wooden candle holder with custom engraved map design" 
+                                 class="w-full h-32 object-cover rounded-lg mb-2" />
+                            <p class="text-sm font-medium">Candle</p>
+                            <p class="text-xs text-muted-foreground">$39.99</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: PreviewSection -->
+    </div>
+    <!-- @END_COMPONENT: MainLayout -->
+
+    <script>
+        // Sidebar toggle functionality
+        (function() {
+            const sidebar = document.getElementById('sidebar');
+            const functionPanel = document.getElementById('functionPanel');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const tabLabels = document.querySelectorAll('.tab-label');
+            
+            let isExpanded = false;
+            
+            toggleBtn.addEventListener('click', function() {
+                isExpanded = !isExpanded;
+                
+                if (isExpanded) {
+                    sidebar.style.width = '280px';
+                    functionPanel.style.marginLeft = '0px';
+                    toggleIcon.classList.remove('fa-chevron-right');
+                    toggleIcon.classList.add('fa-chevron-left');
+                    
+                    // Show labels with delay for smooth animation
+                    setTimeout(() => {
+                        tabLabels.forEach(label => label.classList.remove('hidden'));
+                    }, 150);
+                } else {
+                    sidebar.style.width = '60px';
+                    functionPanel.style.marginLeft = '0px';
+                    toggleIcon.classList.remove('fa-chevron-left');
+                    toggleIcon.classList.add('fa-chevron-right');
+                    
+                    // Hide labels immediately
+                    tabLabels.forEach(label => label.classList.add('hidden'));
+                }
+            });
+            
+            // Tab switching functionality
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const panels = document.querySelectorAll('.panel');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Remove active state from all tabs
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('bg-primary', 'text-primary-foreground');
+                        btn.classList.add('hover:bg-muted');
+                    });
+                    
+                    // Add active state to clicked tab
+                    this.classList.add('bg-primary', 'text-primary-foreground');
+                    this.classList.remove('hover:bg-muted');
+                    
+                    // Hide all panels
+                    panels.forEach(panel => panel.classList.add('hidden'));
+                    
+                    // Show target panel
+                    const targetPanel = document.getElementById(targetTab + '-panel');
+                    if (targetPanel) {
+                        targetPanel.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // Responsive behavior
+            function handleResize() {
+                if (window.innerWidth < 768) {
+                    // Mobile: stack panels vertically
+                    sidebar.style.width = '100%';
+                    functionPanel.style.width = '100%';
+                } else if (window.innerWidth < 1024) {
+                    // Tablet: collapse sidebar by default
+                    if (isExpanded) {
+                        sidebar.style.width = '280px';
+                    } else {
+                        sidebar.style.width = '60px';
+                    }
+                    functionPanel.style.width = '350px';
+                } else {
+                    // Desktop: maintain current state
+                    if (isExpanded) {
+                        sidebar.style.width = '280px';
+                    } else {
+                        sidebar.style.width = '60px';
+                    }
+                    functionPanel.style.width = '350px';
+                }
+            }
+            
+            window.addEventListener('resize', handleResize);
+            handleResize(); // Initial call
+            
+            // TODO: Implement business logic for:
+            // - Map search and location selection
+            // - Real-time map preview updates
+            // - Text and icon positioning with drag-and-drop
+            // - Product customization and pricing calculation
+            // - Shopify integration for cart and checkout
+            // - File generation and order processing
+            
+        })();
+    </script>
+</body>
+</html>
