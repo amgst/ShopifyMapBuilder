@@ -7,7 +7,7 @@ const productShapes = [
   { id: "rectangle", label: "Rectangle", aspectRatio: 1.5, description: "Standard rectangular maps" },
   { id: "stick", label: "Stick", aspectRatio: 1.2, description: "Small rectangles" },
   { id: "twig", label: "Twig", aspectRatio: 3, description: "Thin, long rectangles" },
-  { id: "circle", label: "Circle", aspectRatio: 1, description: "For ornaments and candles" },
+  { id: "circle", label: "Circle", aspectRatio: 1, description: "Perfect for ornaments,\ncandles & decorative pieces" },
 ] as const;
 
 const sizeOptions = [
