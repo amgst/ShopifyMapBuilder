@@ -166,20 +166,19 @@ export default function PreviewPanel() {
       <div className="max-w-2xl mx-auto">
 
         {/* Product Preview */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-          <div className="relative flex justify-center">
-            {/* Product Base */}
-            <div 
-              className={`
-                w-[70%] relative overflow-hidden
-                ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
-                ${state.productSettings?.shape === 'circle' ? 'rounded-full aspect-square' : 'rounded-lg'}
-                ${state.productSettings?.shape === 'rectangle' ? 'aspect-[2/3]' : ''}
-                ${state.productSettings?.shape === 'stick' ? 'aspect-[5/6]' : ''}
-                ${state.productSettings?.shape === 'twig' ? 'aspect-[1/3]' : ''}
-                ${!state.productSettings?.shape && 'aspect-[2/3]'}
-              `}
-            >
+        <div className="relative flex justify-center mb-6">
+          {/* Product Base */}
+          <div 
+            className={`
+              w-[70%] relative overflow-hidden
+              ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
+              ${state.productSettings?.shape === 'circle' ? 'rounded-full aspect-square' : 'rounded-lg'}
+              ${state.productSettings?.shape === 'rectangle' ? 'aspect-[2/3]' : ''}
+              ${state.productSettings?.shape === 'stick' ? 'aspect-[5/6]' : ''}
+              ${state.productSettings?.shape === 'twig' ? 'aspect-[1/3]' : ''}
+              ${!state.productSettings?.shape && 'aspect-[2/3]'}
+            `}
+          >
               {/* Map Engraved Area */}
               <div 
                 ref={previewRef}
@@ -344,7 +343,6 @@ export default function PreviewPanel() {
                   )}
                 </div>
               </div>
-            </div>
           </div>
         </div>
 
