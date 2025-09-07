@@ -247,21 +247,21 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
           id: 'auto-city',
           content: action.payload.city,
           x: 50,
-          y: 35,
-          fontSize: 32,
+          y: 70,
+          fontSize: 36,
           fontFamily: 'Inter Bold',
           color: 'black'
         });
       }
       
-      // Add country text
+      // Add country text with decorative lines
       if (action.payload.country) {
         newLocationTexts.push({
           id: 'auto-country',
-          content: action.payload.country,
+          content: `——— ${action.payload.country} ———`,
           x: 50,
-          y: 45,
-          fontSize: 28,
+          y: 78,
+          fontSize: 24,
           fontFamily: 'Inter Bold',
           color: 'black'
         });
@@ -273,8 +273,8 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
           id: 'auto-coordinates',
           content: action.payload.coordinates,
           x: 50,
-          y: 65,
-          fontSize: 16,
+          y: 85,
+          fontSize: 14,
           fontFamily: 'Inter Regular',
           color: 'black'
         });
