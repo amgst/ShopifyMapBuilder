@@ -32,17 +32,20 @@ const compassComponents = {
 };
 
 export default function PreviewPanel() {
-  const { state, updateTextPosition, updateIconPosition, updateCompassPosition } = useMapBuilder();
+  const { state, updateTextPosition, updateIconPosition, updateIconSize, updateCompassPosition } = useMapBuilder();
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
+    isResizing: boolean;
     type: 'text' | 'icon' | 'compass' | null;
     id: string | null;
     startX: number;
     startY: number;
     initialX: number;
     initialY: number;
+    initialSize?: number;
   }>({
     isDragging: false,
+    isResizing: false,
     type: null,
     id: null,
     startX: 0,
@@ -62,6 +65,7 @@ export default function PreviewPanel() {
     e.preventDefault();
     setDragState({
       isDragging: true,
+      isResizing: false,
       type,
       id,
       startX: e.clientX,
@@ -71,32 +75,61 @@ export default function PreviewPanel() {
     });
   };
 
+  const handleResizeStart = (
+    e: React.MouseEvent,
+    iconId: string,
+    currentSize: number
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragState({
+      isDragging: false,
+      isResizing: true,
+      type: 'icon',
+      id: iconId,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: 0,
+      initialY: 0,
+      initialSize: currentSize,
+    });
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!dragState.isDragging || !previewRef.current) return;
+    if ((!dragState.isDragging && !dragState.isResizing) || !previewRef.current) return;
 
     const rect = previewRef.current.getBoundingClientRect();
     const deltaX = e.clientX - dragState.startX;
     const deltaY = e.clientY - dragState.startY;
     
-    // Convert pixel movement to percentage
-    const deltaXPercent = (deltaX / rect.width) * 100;
-    const deltaYPercent = (deltaY / rect.height) * 100;
-    
-    const newX = Math.max(0, Math.min(100, dragState.initialX + deltaXPercent));
-    const newY = Math.max(0, Math.min(100, dragState.initialY + deltaYPercent));
+    if (dragState.isResizing && dragState.type === 'icon' && dragState.id && dragState.initialSize) {
+      // Handle resize
+      const resizeDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const resizeFactor = deltaX > 0 ? 1 : -1; // Resize direction based on X movement
+      const newSize = Math.max(16, Math.min(100, dragState.initialSize + resizeFactor * resizeDistance * 0.2));
+      updateIconSize(dragState.id, newSize);
+    } else if (dragState.isDragging) {
+      // Handle drag
+      const deltaXPercent = (deltaX / rect.width) * 100;
+      const deltaYPercent = (deltaY / rect.height) * 100;
+      
+      const newX = Math.max(0, Math.min(100, dragState.initialX + deltaXPercent));
+      const newY = Math.max(0, Math.min(100, dragState.initialY + deltaYPercent));
 
-    if (dragState.type === 'text' && dragState.id) {
-      updateTextPosition(dragState.id, newX, newY);
-    } else if (dragState.type === 'icon' && dragState.id) {
-      updateIconPosition(dragState.id, newX, newY);
-    } else if (dragState.type === 'compass') {
-      updateCompassPosition(newX, newY);
+      if (dragState.type === 'text' && dragState.id) {
+        updateTextPosition(dragState.id, newX, newY);
+      } else if (dragState.type === 'icon' && dragState.id) {
+        updateIconPosition(dragState.id, newX, newY);
+      } else if (dragState.type === 'compass') {
+        updateCompassPosition(newX, newY);
+      }
     }
   };
 
   const handleMouseUp = () => {
     setDragState({
       isDragging: false,
+      isResizing: false,
       type: null,
       id: null,
       startX: 0,
@@ -183,19 +216,31 @@ export default function PreviewPanel() {
                     return (
                       <div
                         key={icon.id}
-                        className="absolute cursor-move hover:bg-black/10 rounded p-1"
+                        className="absolute group"
                         style={{
                           left: `${icon.x}%`,
                           top: `${icon.y}%`,
                           transform: 'translate(-50%, -50%)',
                         }}
-                        onMouseDown={(e) => handleMouseDown(e, 'icon', icon.id, icon.x, icon.y)}
                         data-testid={`draggable-icon-${icon.id}`}
                       >
-                        <IconComponent 
-                          className="text-black"
-                          size={Math.max(12, icon.size * 0.5)}
-                        />
+                        {/* Icon */}
+                        <div
+                          className="cursor-move hover:bg-black/10 rounded p-1 relative"
+                          onMouseDown={(e) => handleMouseDown(e, 'icon', icon.id, icon.x, icon.y)}
+                        >
+                          <IconComponent 
+                            className="text-black"
+                            size={Math.max(12, icon.size * 0.5)}
+                          />
+                          
+                          {/* Resize Handle */}
+                          <div
+                            className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border-2 border-white rounded-full cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
+                            onMouseDown={(e) => handleResizeStart(e, icon.id, icon.size)}
+                            title="Drag to resize"
+                          />
+                        </div>
                       </div>
                     );
                   })}

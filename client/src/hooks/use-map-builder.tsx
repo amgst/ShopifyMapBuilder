@@ -61,6 +61,7 @@ type MapBuilderAction =
   | { type: 'ADD_ICON'; payload: Omit<IconElement, 'id'> }
   | { type: 'REMOVE_ICON'; payload: string }
   | { type: 'UPDATE_ICON_POSITION'; payload: { id: string; x: number; y: number } }
+  | { type: 'UPDATE_ICON_SIZE'; payload: { id: string; size: number } }
   | { type: 'SET_COMPASS'; payload?: CompassElement }
   | { type: 'UPDATE_COMPASS_POSITION'; payload: { x: number; y: number } }
   | { type: 'UPDATE_PRODUCT_SETTINGS'; payload: ProductSettings }
@@ -179,6 +180,19 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
         },
       };
 
+    case 'UPDATE_ICON_SIZE':
+      return {
+        ...state,
+        customizations: {
+          ...state.customizations,
+          icons: state.customizations.icons.map(icon =>
+            icon.id === action.payload.id
+              ? { ...icon, size: Math.max(16, Math.min(100, action.payload.size)) }
+              : icon
+          ),
+        },
+      };
+
     case 'UPDATE_COMPASS_POSITION':
       return {
         ...state,
@@ -223,6 +237,7 @@ interface MapBuilderContextType {
   addIcon: (icon: Omit<IconElement, 'id'>) => void;
   removeIcon: (id: string) => void;
   updateIconPosition: (id: string, x: number, y: number) => void;
+  updateIconSize: (id: string, size: number) => void;
   setCompass: (compass?: CompassElement) => void;
   updateCompassPosition: (x: number, y: number) => void;
   updateProductSettings: (settings: ProductSettings) => void;
@@ -266,6 +281,10 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_ICON_POSITION', payload: { id, x, y } });
   };
 
+  const updateIconSize = (id: string, size: number) => {
+    dispatch({ type: 'UPDATE_ICON_SIZE', payload: { id, size } });
+  };
+
   const setCompass = (compass?: CompassElement) => {
     dispatch({ type: 'SET_COMPASS', payload: compass });
   };
@@ -292,6 +311,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     addIcon,
     removeIcon,
     updateIconPosition,
+    updateIconSize,
     setCompass,
     updateCompassPosition,
     updateProductSettings,
