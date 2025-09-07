@@ -12,9 +12,14 @@ import {
   Compass,
   Navigation,
   Plus,
-  Minus
+  Minus,
+  ShoppingCart,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useShopify } from "@/hooks/use-shopify";
+import { CustomMapData, ShopifyConfig } from "@/lib/shopify";
 import InteractiveMap from "@/components/interactive-map";
 
 // Icon mapping for proper display
@@ -35,8 +40,24 @@ const compassComponents = {
   arrow: Navigation,
 };
 
+// Size price mapping
+const sizeOptions = [
+  { id: "standard", label: '12" × 8" Standard', description: "Perfect for detailed maps", price: 64.99 },
+  { id: "large", label: '16" × 10" Large', description: "Premium size option", price: 89.99 },
+  { id: "compact", label: '8" × 6" Compact', description: "Great for smaller spaces", price: 49.99 },
+];
+
+// Shopify configuration
+const shopifyConfig: ShopifyConfig = {
+  storeName: 'vgpcreatives',
+  storefrontAccessToken: '172c37b6b7a7759406ad719a4f149d42',
+  productVariantId: 'gid://shopify/ProductVariant/48847474024775' // You'll need to provide the actual variant ID
+};
+
 export default function PreviewPanel() {
   const { state, updateTextPosition, updateIconPosition, updateIconSize, updateCompassPosition, updateMapZoom } = useMapBuilder();
+  const { toast } = useToast();
+  const { isLoading, addToCart } = useShopify();
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     isResizing: boolean;
@@ -159,6 +180,69 @@ export default function PreviewPanel() {
   const handleZoomOut = () => {
     const currentZoom = state.location?.zoom || 12;
     updateMapZoom(Math.max(1, currentZoom - 1));
+  };
+
+  // Capture all design data for Shopify
+  const captureMapData = (): CustomMapData => {
+    const currentSize = state.productSettings?.size || 'standard';
+    const sizeInfo = sizeOptions.find(s => s.id === currentSize);
+    
+    return {
+      location: {
+        lat: state.location?.lat || 48.8566,
+        lng: state.location?.lng || 2.3522,
+        zoom: state.location?.zoom || 12,
+        searchQuery: state.location?.searchQuery || 'Paris, France',
+        city: 'PARIS', // This would come from your location service
+        country: 'FRANCE', // This would come from your location service
+        coordinates: `${(state.location?.lat || 48.8566).toFixed(3)}°N / ${(state.location?.lng || 2.3522).toFixed(3)}°E`
+      },
+      productSettings: {
+        shape: state.productSettings?.shape || 'rectangle',
+        size: currentSize,
+        material: state.productSettings?.material || 'oak',
+        aspectRatio: state.productSettings?.aspectRatio || 2.62
+      },
+      customizations: {
+        texts: state.customizations.texts || [],
+        icons: state.customizations.icons || [],
+        compass: state.customizations.compass
+      },
+      price: sizeInfo?.price || 64.99
+    };
+  };
+
+  // Handle add to cart
+  const handleAddToCart = async () => {
+    try {
+      const mapData = captureMapData();
+      const result = await addToCart(shopifyConfig, mapData);
+      
+      if (result.success) {
+        toast({
+          title: "Added to Cart!",
+          description: `Your custom map has been added to cart. ${result.totalItems} item(s) total.`,
+        });
+        
+        // Optional: Redirect to checkout
+        if (result.checkoutUrl) {
+          // You can uncomment this to redirect immediately to checkout
+          // window.open(result.checkoutUrl, '_blank');
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to add item to cart. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -376,7 +460,7 @@ export default function PreviewPanel() {
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h4 className="font-medium mb-2">Material</h4>
             <p className="text-sm text-muted-foreground capitalize">
-              {state.productSettings?.material || 'Wood'}
+              {state.productSettings?.material || 'Oak'}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 shadow-sm">
@@ -388,6 +472,58 @@ export default function PreviewPanel() {
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h4 className="font-medium mb-2">Finish</h4>
             <p className="text-sm text-muted-foreground">Laser Engraved</p>
+          </div>
+        </div>
+
+        {/* Add to Cart Section */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-border/50">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Ready to Order?</h3>
+              <p className="text-sm text-muted-foreground">
+                Your custom map design will be laser engraved with all your specifications
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">
+                ${(() => {
+                  const currentSize = state.productSettings?.size || 'standard';
+                  const sizeInfo = sizeOptions.find(s => s.id === currentSize);
+                  return sizeInfo?.price.toFixed(2) || '64.99';
+                })()}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {(() => {
+                  const currentSize = state.productSettings?.size || 'standard';
+                  const sizeInfo = sizeOptions.find(s => s.id === currentSize);
+                  return sizeInfo?.label || '12" × 8" Standard';
+                })()}
+              </div>
+            </div>
+          </div>
+          
+          <Button
+            onClick={handleAddToCart}
+            disabled={isLoading}
+            className="w-full h-12 text-base font-semibold"
+            data-testid="add-to-cart-button"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Adding to Cart...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Add to Cart
+              </>
+            )}
+          </Button>
+          
+          <div className="mt-3 text-xs text-muted-foreground text-center">
+            <p>✓ Free shipping on orders over $75</p>
+            <p>✓ 30-day money-back guarantee</p>
           </div>
         </div>
 
