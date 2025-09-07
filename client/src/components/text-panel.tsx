@@ -130,7 +130,7 @@ export default function TextPanel() {
             value={fontSize}
             onValueChange={handleSizeChange}
             min={12}
-            max={48}
+            max={80}
             step={2}
             className="w-full"
             data-testid="font-size-slider"
@@ -138,7 +138,7 @@ export default function TextPanel() {
           <div className="flex justify-between text-sm text-muted-foreground mt-1">
             <span>12px</span>
             <span className="font-medium">{fontSize[0]}px</span>
-            <span>48px</span>
+            <span>80px</span>
           </div>
         </div>
 

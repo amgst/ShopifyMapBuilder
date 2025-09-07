@@ -229,7 +229,7 @@ export default function PreviewPanel() {
                       style={{
                         left: `${text.x}%`,
                         top: `${text.y}%`,
-                        fontSize: `${Math.max(8, text.fontSize * 0.5)}px`,
+                        fontSize: `${Math.max(8, text.fontSize * 0.6)}px`,
                         fontFamily: text.fontFamily,
                         color: '#000000',
                         textShadow: '0 0 2px #ffffff, 0 0 2px #ffffff, 0 0 2px #ffffff',
