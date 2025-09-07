@@ -215,16 +215,6 @@ export default function PreviewPanel() {
                     <InteractiveMap className="w-full h-full" />
                   </div>
                   
-                  {/* Faux wood background overlay for water areas */}
-                  <div 
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background: state.productSettings?.material === 'wood' 
-                        ? 'linear-gradient(135deg, rgba(146, 64, 14, 0.3) 0%, rgba(69, 26, 3, 0.3) 50%, rgba(28, 7, 1, 0.3) 100%)' 
-                        : 'rgba(0, 0, 0, 0.1)',
-                      mixBlendMode: 'multiply'
-                    }}
-                  />
                   
                   {/* Location indicator */}
                   {state.location && (
