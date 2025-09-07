@@ -3,6 +3,7 @@ import { Search, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMapBuilder } from "@/hooks/use-map-builder";
+import InteractiveMap from "./interactive-map";
 
 const popularPlaces = [
   { name: "Paris, France", lat: 48.8566, lng: 2.3522 },
@@ -86,18 +87,14 @@ export default function LocationPanel() {
         </div>
       </div>
 
-      {/* Map Controls */}
+      {/* Interactive Map */}
       <div className="mb-6">
-        <h3 className="font-medium mb-3">MAP CONTROLS</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="p-3 h-auto flex items-center justify-center">
-            <span className="text-2xl mr-2">+</span>
-            Zoom In
-          </Button>
-          <Button variant="outline" className="p-3 h-auto flex items-center justify-center">
-            <span className="text-2xl mr-2">-</span>
-            Zoom Out
-          </Button>
+        <h3 className="font-medium mb-3">INTERACTIVE MAP</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Click on the map to set your location. Use mouse wheel to zoom and drag to pan.
+        </p>
+        <div className="border border-border rounded-lg overflow-hidden" style={{ height: '300px' }}>
+          <InteractiveMap />
         </div>
       </div>
 
