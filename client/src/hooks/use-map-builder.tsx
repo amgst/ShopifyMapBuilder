@@ -56,9 +56,12 @@ type MapBuilderAction =
   | { type: 'UPDATE_LOCATION'; payload: Location }
   | { type: 'ADD_TEXT'; payload: Omit<TextElement, 'id'> }
   | { type: 'REMOVE_TEXT'; payload: string }
+  | { type: 'UPDATE_TEXT_POSITION'; payload: { id: string; x: number; y: number } }
   | { type: 'ADD_ICON'; payload: Omit<IconElement, 'id'> }
   | { type: 'REMOVE_ICON'; payload: string }
+  | { type: 'UPDATE_ICON_POSITION'; payload: { id: string; x: number; y: number } }
   | { type: 'SET_COMPASS'; payload?: CompassElement }
+  | { type: 'UPDATE_COMPASS_POSITION'; payload: { x: number; y: number } }
   | { type: 'UPDATE_PRODUCT_SETTINGS'; payload: ProductSettings }
   | { type: 'RESET_STATE' };
 
@@ -131,6 +134,43 @@ function mapBuilderReducer(state: MapBuilderState, action: MapBuilderAction): Ma
         },
       };
 
+    case 'UPDATE_TEXT_POSITION':
+      return {
+        ...state,
+        customizations: {
+          ...state.customizations,
+          texts: state.customizations.texts.map(text =>
+            text.id === action.payload.id
+              ? { ...text, x: action.payload.x, y: action.payload.y }
+              : text
+          ),
+        },
+      };
+
+    case 'UPDATE_ICON_POSITION':
+      return {
+        ...state,
+        customizations: {
+          ...state.customizations,
+          icons: state.customizations.icons.map(icon =>
+            icon.id === action.payload.id
+              ? { ...icon, x: action.payload.x, y: action.payload.y }
+              : icon
+          ),
+        },
+      };
+
+    case 'UPDATE_COMPASS_POSITION':
+      return {
+        ...state,
+        customizations: {
+          ...state.customizations,
+          compass: state.customizations.compass
+            ? { ...state.customizations.compass, x: action.payload.x, y: action.payload.y }
+            : undefined,
+        },
+      };
+
     case 'SET_COMPASS':
       return {
         ...state,
@@ -159,9 +199,12 @@ interface MapBuilderContextType {
   updateLocation: (location: Location) => void;
   addText: (text: Omit<TextElement, 'id'>) => void;
   removeText: (id: string) => void;
+  updateTextPosition: (id: string, x: number, y: number) => void;
   addIcon: (icon: Omit<IconElement, 'id'>) => void;
   removeIcon: (id: string) => void;
+  updateIconPosition: (id: string, x: number, y: number) => void;
   setCompass: (compass?: CompassElement) => void;
+  updateCompassPosition: (x: number, y: number) => void;
   updateProductSettings: (settings: ProductSettings) => void;
   resetState: () => void;
 }
@@ -191,8 +234,20 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'REMOVE_ICON', payload: id });
   };
 
+  const updateTextPosition = (id: string, x: number, y: number) => {
+    dispatch({ type: 'UPDATE_TEXT_POSITION', payload: { id, x, y } });
+  };
+
+  const updateIconPosition = (id: string, x: number, y: number) => {
+    dispatch({ type: 'UPDATE_ICON_POSITION', payload: { id, x, y } });
+  };
+
   const setCompass = (compass?: CompassElement) => {
     dispatch({ type: 'SET_COMPASS', payload: compass });
+  };
+
+  const updateCompassPosition = (x: number, y: number) => {
+    dispatch({ type: 'UPDATE_COMPASS_POSITION', payload: { x, y } });
   };
 
   const updateProductSettings = (settings: ProductSettings) => {
@@ -208,9 +263,12 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     updateLocation,
     addText,
     removeText,
+    updateTextPosition,
     addIcon,
     removeIcon,
+    updateIconPosition,
     setCompass,
+    updateCompassPosition,
     updateProductSettings,
     resetState,
   };

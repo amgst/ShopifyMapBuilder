@@ -1,7 +1,110 @@
 import { useMapBuilder } from "@/hooks/use-map-builder";
+import { useState, useRef } from "react";
+import { 
+  Home, 
+  Heart, 
+  Star, 
+  MapPin, 
+  Network, 
+  Mountain, 
+  Anchor, 
+  Plane,
+  Compass,
+  Navigation
+} from "lucide-react";
+
+// Icon mapping for proper display
+const iconComponents = {
+  home: Home,
+  heart: Heart,
+  star: Star,
+  pin: MapPin,
+  tree: Network,
+  mountain: Mountain,
+  anchor: Anchor,
+  plane: Plane,
+};
+
+const compassComponents = {
+  classic: Compass,
+  modern: Navigation,
+  arrow: Navigation,
+};
 
 export default function PreviewPanel() {
-  const { state } = useMapBuilder();
+  const { state, updateTextPosition, updateIconPosition, updateCompassPosition } = useMapBuilder();
+  const [dragState, setDragState] = useState<{
+    isDragging: boolean;
+    type: 'text' | 'icon' | 'compass' | null;
+    id: string | null;
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  }>({
+    isDragging: false,
+    type: null,
+    id: null,
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+  });
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (
+    e: React.MouseEvent,
+    type: 'text' | 'icon' | 'compass',
+    id: string,
+    currentX: number,
+    currentY: number
+  ) => {
+    e.preventDefault();
+    setDragState({
+      isDragging: true,
+      type,
+      id,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: currentX,
+      initialY: currentY,
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragState.isDragging || !previewRef.current) return;
+
+    const rect = previewRef.current.getBoundingClientRect();
+    const deltaX = e.clientX - dragState.startX;
+    const deltaY = e.clientY - dragState.startY;
+    
+    // Convert pixel movement to percentage
+    const deltaXPercent = (deltaX / rect.width) * 100;
+    const deltaYPercent = (deltaY / rect.height) * 100;
+    
+    const newX = Math.max(0, Math.min(100, dragState.initialX + deltaXPercent));
+    const newY = Math.max(0, Math.min(100, dragState.initialY + deltaYPercent));
+
+    if (dragState.type === 'text' && dragState.id) {
+      updateTextPosition(dragState.id, newX, newY);
+    } else if (dragState.type === 'icon' && dragState.id) {
+      updateIconPosition(dragState.id, newX, newY);
+    } else if (dragState.type === 'compass') {
+      updateCompassPosition(newX, newY);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDragState({
+      isDragging: false,
+      type: null,
+      id: null,
+      startX: 0,
+      startY: 0,
+      initialX: 0,
+      initialY: 0,
+    });
+  };
 
   return (
     <div className="flex-1 bg-muted/30 p-6 overflow-auto" data-testid="preview-panel">
@@ -22,7 +125,13 @@ export default function PreviewPanel() {
               ${state.productSettings?.material === 'wood' ? 'bg-gradient-to-br from-amber-700 to-amber-900' : 'bg-gradient-to-br from-gray-300 to-gray-500'}
             `}>
               {/* Map Engraved Area */}
-              <div className="absolute inset-4 bg-white rounded shadow-inner overflow-hidden">
+              <div 
+                ref={previewRef}
+                className="absolute inset-4 bg-white rounded shadow-inner overflow-hidden"
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
                 {/* Map Background */}
                 <div className="w-full h-full relative bg-gray-100">
                   {/* Simplified map representation */}
@@ -43,7 +152,7 @@ export default function PreviewPanel() {
                   {state.customizations.texts.map((text) => (
                     <div
                       key={text.id}
-                      className="absolute text-black font-medium"
+                      className="absolute text-black font-medium cursor-move hover:bg-black/10 rounded px-1"
                       style={{
                         left: `${text.x}%`,
                         top: `${text.y}%`,
@@ -52,37 +161,57 @@ export default function PreviewPanel() {
                         color: text.color,
                         transform: 'translate(-50%, -50%)',
                       }}
+                      onMouseDown={(e) => handleMouseDown(e, 'text', text.id, text.x, text.y)}
+                      data-testid={`draggable-text-${text.id}`}
                     >
                       {text.content}
                     </div>
                   ))}
                   
                   {/* Icons */}
-                  {state.customizations.icons.map((icon) => (
-                    <div
-                      key={icon.id}
-                      className="absolute w-4 h-4 bg-black rounded-sm"
-                      style={{
-                        left: `${icon.x}%`,
-                        top: `${icon.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                    />
-                  ))}
+                  {state.customizations.icons.map((icon) => {
+                    const IconComponent = iconComponents[icon.type as keyof typeof iconComponents] || MapPin;
+                    return (
+                      <div
+                        key={icon.id}
+                        className="absolute cursor-move hover:bg-black/10 rounded p-1"
+                        style={{
+                          left: `${icon.x}%`,
+                          top: `${icon.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                        onMouseDown={(e) => handleMouseDown(e, 'icon', icon.id, icon.x, icon.y)}
+                        data-testid={`draggable-icon-${icon.id}`}
+                      >
+                        <IconComponent 
+                          className="text-black"
+                          size={Math.max(12, icon.size * 0.5)}
+                        />
+                      </div>
+                    );
+                  })}
                   
                   {/* Compass */}
-                  {state.customizations.compass && (
-                    <div
-                      className="absolute w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-xs"
-                      style={{
-                        left: `${state.customizations.compass.x}%`,
-                        top: `${state.customizations.compass.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                    >
-                      N
-                    </div>
-                  )}
+                  {state.customizations.compass && (() => {
+                    const CompassComponent = compassComponents[state.customizations.compass.type as keyof typeof compassComponents] || Compass;
+                    return (
+                      <div
+                        className="absolute cursor-move hover:bg-black/10 rounded-full p-2"
+                        style={{
+                          left: `${state.customizations.compass.x}%`,
+                          top: `${state.customizations.compass.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                        onMouseDown={(e) => handleMouseDown(e, 'compass', 'compass', state.customizations.compass!.x, state.customizations.compass!.y)}
+                        data-testid="draggable-compass"
+                      >
+                        <CompassComponent 
+                          className="text-black"
+                          size={Math.max(16, state.customizations.compass.size * 0.5)}
+                        />
+                      </div>
+                    );
+                  })()}
                   
                   {/* Coordinates */}
                   {state.location && (
