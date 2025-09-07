@@ -1,6 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 // Increase request size limits to handle large image data (base64 encoded)
@@ -70,7 +74,9 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '3000', 10);
-  server.listen(port, 'localhost', () => {
-    log(`serving on port ${port}`);
+  const host = process.env.VERCEL ? '0.0.0.0' : 'localhost';
+  
+  server.listen(port, host, () => {
+    log(`serving on ${host}:${port}`);
   });
 })();
