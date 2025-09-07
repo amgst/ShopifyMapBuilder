@@ -213,16 +213,33 @@ export default function PreviewPanel() {
     };
   };
 
-  // Debug function to find products
+  // Debug function to find products and auto-update variant ID
   const handleFindProducts = async () => {
     try {
       const products = await findShopifyProducts(shopifyConfig);
-      if (products) {
+      if (products && products.length > 0) {
         console.log('Available products in your store:', products);
-        toast({
-          title: "Products Found!",
-          description: "Check the browser console (F12) to see all available products and their variant IDs.",
-        });
+        
+        // Auto-update with first available variant
+        const firstProduct = products[0];
+        if (firstProduct.variants && firstProduct.variants.length > 0) {
+          const variantId = firstProduct.variants[0].id;
+          console.log('🎯 WILL USE THIS VARIANT ID:', variantId);
+          
+          // Update the config automatically
+          shopifyConfig.productVariantId = variantId;
+          
+          toast({
+            title: "Product Found!",
+            description: `Updated to use: ${firstProduct.title}. Try "Add to Cart" now!`,
+          });
+        } else {
+          toast({
+            title: "No Variants",
+            description: "The first product has no variants available.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Error",
