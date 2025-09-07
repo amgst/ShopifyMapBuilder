@@ -83,7 +83,7 @@ const initialState: MapBuilderState = {
   productSettings: {
     shape: 'rectangle',
     size: 'standard',
-    material: 'wood',
+    material: 'oak',
     aspectRatio: 2.62,
   },
 };
@@ -344,28 +344,36 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
         }
       };
       
-      fetchInitialLocationData();
+      fetchInitialLocationData().catch(error => {
+        console.error('Unhandled error in fetchInitialLocationData:', error);
+      });
     }
   }, []); // Empty dependency array means this runs once on mount
 
-  const updateLocation = async (location: Location) => {
+  const updateLocation = (location: Location) => {
     dispatch({ type: 'UPDATE_LOCATION', payload: location });
     
-    // Automatically fetch and set location text
-    try {
-      const response = await fetch(`/api/reverse-geocode?lat=${location.lat}&lng=${location.lng}`);
-      if (response.ok) {
-        const locationData = await response.json();
-        console.log('Location data received:', locationData);
-        setAutoLocationText({
-          city: locationData.city,
-          country: locationData.country,
-          coordinates: locationData.coordinates
-        });
+    // Automatically fetch and set location text - handle async properly
+    const fetchLocationData = async () => {
+      try {
+        const response = await fetch(`/api/reverse-geocode?lat=${location.lat}&lng=${location.lng}`);
+        if (response.ok) {
+          const locationData = await response.json();
+          console.log('Location data received:', locationData);
+          setAutoLocationText({
+            city: locationData.city,
+            country: locationData.country,
+            coordinates: locationData.coordinates
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch location details:', error);
       }
-    } catch (error) {
-      console.error('Failed to fetch location details:', error);
-    }
+    };
+    
+    fetchLocationData().catch(error => {
+      console.error('Unhandled error in fetchLocationData:', error);
+    });
   };
 
   const addText = (text: Omit<TextElement, 'id'>) => {
