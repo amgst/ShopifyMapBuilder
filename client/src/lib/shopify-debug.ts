@@ -64,12 +64,27 @@ export async function findShopifyProducts(config: ShopifyConfig) {
       }))
     }));
 
-    // Find the custom map product specifically
-    const customMapProduct = products.find((p: any) => p.handle === 'custom-map-product');
+    // Show first few products with their variant IDs for testing
+    console.log('First 3 products for testing:');
+    products.slice(0, 3).forEach((product: any, index: number) => {
+      console.log(`Product ${index + 1}:`, {
+        title: product.title,
+        handle: product.handle,
+        firstVariantId: product.variants[0]?.id || 'No variants'
+      });
+    });
+    
+    // Try to find custom map product
+    const customMapProduct = products.find((p: any) => p.handle === 'custom-map-product' || p.title.toLowerCase().includes('map'));
     if (customMapProduct) {
-      console.log('Found custom map product:', customMapProduct);
+      console.log('Found map-related product:', customMapProduct);
       if (customMapProduct.variants.length > 0) {
-        console.log('Use this variant ID:', customMapProduct.variants[0].id);
+        console.log('🎯 USE THIS VARIANT ID:', customMapProduct.variants[0].id);
+      }
+    } else {
+      console.log('No map product found, using first available product for testing');
+      if (products.length > 0 && products[0].variants.length > 0) {
+        console.log('🎯 TEST WITH THIS VARIANT ID:', products[0].variants[0].id);
       }
     }
 
