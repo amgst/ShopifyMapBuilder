@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import MapBuilder from "@/pages/map-builder";
+import ShopifyDebug from "@/pages/shopify-debug";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -11,6 +12,7 @@ function Router() {
     <Switch>
       <Route path="/" component={MapBuilder} />
       <Route path="/builder" component={MapBuilder} />
+      <Route path="/debug" component={ShopifyDebug} />
       <Route component={NotFound} />
     </Switch>
   );

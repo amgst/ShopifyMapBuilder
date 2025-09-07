@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useShopify } from "@/hooks/use-shopify";
 import { CustomMapData, ShopifyConfig } from "@/lib/shopify";
 import { findShopifyProducts } from "@/lib/shopify-debug";
+import { testShopifyConnection } from "@/lib/shopify";
 import InteractiveMap from "@/components/interactive-map";
 
 // Icon mapping for proper display
@@ -52,7 +53,7 @@ const sizeOptions = [
 const shopifyConfig: ShopifyConfig = {
   storeName: 'vgpcreatives',
   storefrontAccessToken: '172c37b6b7a7759406ad719a4f149d42',
-  productVariantId: 'gid://shopify/ProductVariant/8054005071919'
+  productVariantId: 'gid://shopify/ProductVariant/41068385009711'
 };
 
 export default function PreviewPanel() {
@@ -188,15 +189,33 @@ export default function PreviewPanel() {
     const currentSize = state.productSettings?.size || 'standard';
     const sizeInfo = sizeOptions.find(s => s.id === currentSize);
     
+    // Extract location data from texts or use defaults
+    const cityText = state.customizations.texts.find(t => t.id === 'auto-city');
+    const countryText = state.customizations.texts.find(t => t.id === 'auto-country');
+    const coordinatesText = state.customizations.texts.find(t => t.id === 'auto-coordinates');
+    
+    // Safe extraction of country text (remove decorative lines)
+    let countryValue = 'Unknown Country';
+    if (countryText?.content) {
+      countryValue = countryText.content
+        .replace(/[—–-]/g, '') // Remove em-dash, en-dash, and regular dash
+        .replace(/^\s+|\s+$/g, '') // Trim whitespace
+        .replace(/\s+/g, ' '); // Normalize spaces
+      if (countryValue === '') countryValue = 'Unknown Country';
+    }
+    
+    const currentLat = state.location?.lat || 48.8566;
+    const currentLng = state.location?.lng || 2.3522;
+    
     return {
       location: {
-        lat: state.location?.lat || 48.8566,
-        lng: state.location?.lng || 2.3522,
+        lat: currentLat,
+        lng: currentLng,
         zoom: state.location?.zoom || 12,
         searchQuery: state.location?.searchQuery || 'Paris, France',
-        city: 'PARIS', // This would come from your location service
-        country: 'FRANCE', // This would come from your location service
-        coordinates: `${(state.location?.lat || 48.8566).toFixed(3)}°N / ${(state.location?.lng || 2.3522).toFixed(3)}°E`
+        city: cityText?.content || 'Unknown City',
+        country: countryValue,
+        coordinates: coordinatesText?.content || `${currentLat.toFixed(3)}°N / ${currentLng.toFixed(3)}°E`
       },
       productSettings: {
         shape: state.productSettings?.shape || 'rectangle',
@@ -209,8 +228,39 @@ export default function PreviewPanel() {
         icons: state.customizations.icons || [],
         compass: state.customizations.compass
       },
-      price: sizeInfo?.price || 64.99
+      price: (() => {
+        const currentSize = state.productSettings?.size || 'standard';
+        const sizeInfo = sizeOptions.find(s => s.id === currentSize);
+        return sizeInfo?.price || 64.99;
+      })()
     };
+  };
+
+  // Test Shopify connection
+  const handleTestConnection = async () => {
+    try {
+      const result = await testShopifyConnection(shopifyConfig);
+      
+      if (result.success) {
+        toast({
+          title: "Connection Successful!",
+          description: `Found product: ${result.variant?.product?.title} - ${result.variant?.title}`,
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to test connection.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Debug function to find products and auto-update variant ID
@@ -260,21 +310,48 @@ export default function PreviewPanel() {
   // Handle add to cart
   const handleAddToCart = async () => {
     try {
+      console.log('Adding to cart...');
       const mapData = captureMapData();
+      console.log('Map data captured:', mapData);
+      console.log('Shopify config:', shopifyConfig);
+      
       const result = await addToCart(shopifyConfig, mapData);
+      console.log('Add to cart result:', result);
       
       if (result.success) {
+        // Show success toast with action button
         toast({
           title: "Added to Cart!",
-          description: `Your custom map has been added to cart. ${result.totalItems} item(s) total.`,
+          description: `Your custom map has been added to cart.`,
+          action: (
+            <div className="flex gap-2">
+              {result.checkoutUrl && (
+                <>
+                  <button
+                    onClick={() => {
+                      // Use the actual cart URL that contains the items
+                      // This is where the Storefront API cart items are stored
+                      window.open(result.checkoutUrl!, '_blank');
+                    }}
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
+                  >
+                    View Cart
+                  </button>
+                  <button
+                    onClick={() => window.open(result.checkoutUrl!, '_blank')}
+                    className="px-3 py-1 bg-secondary text-secondary-foreground rounded text-sm hover:bg-secondary/90"
+                  >
+                    Checkout Now
+                  </button>
+                </>
+              )}
+            </div>
+          ),
         });
         
-        // Optional: Redirect to checkout
-        if (result.checkoutUrl) {
-          // You can uncomment this to redirect immediately to checkout
-          // window.open(result.checkoutUrl, '_blank');
-        }
+        // Removed automatic redirect - users will only go to cart when they click the buttons
       } else {
+        console.error('Add to cart failed:', result.error);
         toast({
           title: "Error",
           description: result.error || "Failed to add item to cart. Please try again.",
@@ -282,9 +359,10 @@ export default function PreviewPanel() {
         });
       }
     } catch (error) {
+      console.error('Add to cart exception:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: `An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -343,14 +421,8 @@ export default function PreviewPanel() {
               >
                 {/* Interactive Map - Users can click to select locations */}
                 <div className="w-full h-full relative">
-                  {/* Map with black/white engraving style filter */}
-                  <div 
-                    className="absolute inset-0 overflow-hidden"
-                    style={{
-                      filter: 'grayscale(100%) contrast(150%) brightness(110%)',
-                      mixBlendMode: 'multiply'
-                    }}
-                  >
+                  {/* Map - Clear view for testing */}
+                  <div className="absolute inset-0 overflow-hidden">
                     <InteractiveMap className="w-full h-full" />
                   </div>
                   
@@ -534,7 +606,7 @@ export default function PreviewPanel() {
                 ${(() => {
                   const currentSize = state.productSettings?.size || 'standard';
                   const sizeInfo = sizeOptions.find(s => s.id === currentSize);
-                  return sizeInfo?.price.toFixed(2) || '64.99';
+                  return sizeInfo?.price || 64.99;
                 })()}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -548,6 +620,15 @@ export default function PreviewPanel() {
           </div>
           
           <div className="space-y-2">
+            <Button
+              onClick={handleTestConnection}
+              variant="outline"
+              className="w-full h-10 text-sm"
+              data-testid="test-connection-button"
+            >
+              🔧 Test Shopify Connection
+            </Button>
+            
             <Button
               onClick={handleFindProducts}
               variant="outline"
@@ -571,7 +652,7 @@ export default function PreviewPanel() {
               ) : (
                 <>
                   <ShoppingCart className="w-5 h-5 mr-2" />
-                  Add to Cart
+                  Add to Cart & Checkout
                 </>
               )}
             </Button>
@@ -580,6 +661,7 @@ export default function PreviewPanel() {
           <div className="mt-3 text-xs text-muted-foreground text-center">
             <p>✓ Free shipping on orders over $75</p>
             <p>✓ 30-day money-back guarantee</p>
+            <p>✓ Opens Shopify cart for easy checkout</p>
           </div>
         </div>
 

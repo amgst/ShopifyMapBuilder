@@ -48,6 +48,28 @@ export interface CustomMapData {
   price: number;
 }
 
+// Validate Shopify configuration
+export function validateShopifyConfig(config: ShopifyConfig): { valid: boolean; error?: string } {
+  if (!config.storeName || config.storeName.trim() === '') {
+    return { valid: false, error: 'Store name is required' };
+  }
+  
+  if (!config.storefrontAccessToken || config.storefrontAccessToken.trim() === '') {
+    return { valid: false, error: 'Storefront access token is required' };
+  }
+  
+  if (!config.productVariantId || config.productVariantId.trim() === '') {
+    return { valid: false, error: 'Product variant ID is required' };
+  }
+  
+  // Check if product variant ID has the correct format
+  if (!config.productVariantId.startsWith('gid://shopify/ProductVariant/')) {
+    return { valid: false, error: 'Product variant ID must be in the format: gid://shopify/ProductVariant/[ID]' };
+  }
+  
+  return { valid: true };
+}
+
 // Convert map data to Shopify line item attributes
 export function createLineItemAttributes(mapData: CustomMapData) {
   const attributes = [
@@ -92,162 +114,102 @@ export function createLineItemAttributes(mapData: CustomMapData) {
   return attributes.filter(attr => attr.value && attr.value.trim() !== "");
 }
 
-// Create or add to cart via Shopify Storefront API
+// Create or add to cart via Shopify Storefront API with automatic image generation
 export async function addToShopifyCart(config: ShopifyConfig, mapData: CustomMapData, cartId?: string) {
-  const shopifyUrl = `https://${config.storeName}.myshopify.com/api/2024-10/graphql.json`;
-  
-  const attributes = createLineItemAttributes(mapData);
-  
-  const mutation = cartId ? 
-    // Add to existing cart
-    `mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-      cartLinesAdd(cartId: $cartId, lines: $lines) {
-        cart {
-          id
-          checkoutUrl
-          totalQuantity
-          lines(first: 10) {
-            edges {
-              node {
-                id
-                quantity
-                merchandise {
-                  ... on ProductVariant {
-                    id
-                    title
-                    price {
-                      amount
-                      currencyCode
-                    }
-                  }
-                }
-                attributes {
-                  key
-                  value
-                }
-              }
-            }
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }` :
-    // Create new cart
-    `mutation cartCreate($input: CartInput) {
-      cartCreate(input: $input) {
-        cart {
-          id
-          checkoutUrl
-          totalQuantity
-          lines(first: 10) {
-            edges {
-              node {
-                id
-                quantity
-                merchandise {
-                  ... on ProductVariant {
-                    id
-                    title
-                    price {
-                      amount
-                      currencyCode
-                    }
-                  }
-                }
-                attributes {
-                  key
-                  value
-                }
-              }
-            }
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }`;
-
-  const variables = cartId ? 
-    {
-      cartId,
-      lines: [
-        {
-          quantity: 1,
-          merchandiseId: config.productVariantId,
-          attributes
-        }
-      ]
-    } :
-    {
-      input: {
-        lines: [
-          {
-            quantity: 1,
-            merchandiseId: config.productVariantId,
-            attributes
-          }
-        ]
-      }
+  // Validate configuration first
+  const validation = validateShopifyConfig(config);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: `Configuration error: ${validation.error}`
     };
-
+  }
+  
   try {
-    console.log('Shopify API Request:', {
-      url: shopifyUrl,
-      variables,
-      mutation: mutation.substring(0, 100) + '...'
-    });
-
-    const response = await fetch(shopifyUrl, {
+    console.log('Capturing map image for cart...');
+    
+    // Capture the map image from the preview area
+    let imageData = '';
+    try {
+      const previewElement = document.querySelector('[data-testid="map-preview-area"]') as HTMLElement;
+      if (previewElement) {
+        // Use html2canvas to capture the image
+        const html2canvas = (await import('html2canvas')).default;
+        
+        // Wait for any pending renders
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const canvas = await html2canvas(previewElement, {
+          scale: 3.125, // Exactly 300 DPI (300/96 = 3.125)
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          logging: false,
+          removeContainer: true,
+          imageTimeout: 30000, // Extended timeout for 300 DPI rendering
+          onclone: (clonedDoc) => {
+            // Clean up the cloned document for export
+            const clonedElement = clonedDoc.body;
+            
+            // Remove zoom controls and interactive elements
+            const elementsToRemove = clonedElement.querySelectorAll(
+              '[data-testid*="zoom"], .absolute.top-4.right-4, .cursor-se-resize, .hover\\:bg-black\\/10'
+            );
+            elementsToRemove.forEach(el => el.remove());
+            
+            // Optimize text elements for engraving (black text, no shadows)
+            const textElements = clonedElement.querySelectorAll('[data-testid*="draggable-text"]');
+            textElements.forEach(el => {
+              const htmlEl = el as HTMLElement;
+              htmlEl.style.color = '#000000'; // Black text for engraving
+              htmlEl.style.fontWeight = 'bold';
+              htmlEl.style.textShadow = 'none'; // No shadows for clean engraving
+            });
+            
+            // Optimize icons for engraving (black icons, no effects)
+            const iconElements = clonedElement.querySelectorAll('[data-testid*="draggable-icon"] svg, [data-testid*="draggable-compass"] svg');
+            iconElements.forEach(el => {
+              const htmlEl = el as HTMLElement;
+              htmlEl.style.color = '#000000'; // Black icons for engraving
+              htmlEl.style.fill = '#000000';
+              htmlEl.style.stroke = '#000000';
+              htmlEl.style.filter = 'none'; // No effects for clean engraving
+            });
+          }
+        });
+        
+        // Convert to base64 JPEG with high quality for 8-30MB range
+        imageData = canvas.toDataURL('image/jpeg', 0.92); // High quality for specification compliance
+        console.log('Map image captured successfully');
+      }
+    } catch (imageError) {
+      console.warn('Failed to capture image, proceeding without:', imageError);
+    }
+    
+    console.log('Sending request to server proxy...');
+    
+    const response = await fetch('/api/shopify/add-to-cart', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': config.storefrontAccessToken,
       },
-      body: JSON.stringify({ query: mutation, variables })
+      body: JSON.stringify({
+        config,
+        mapData,
+        cartId,
+        imageData // Send the captured image
+      })
     });
-
-    console.log('Shopify API Response Status:', response.status, response.statusText);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Shopify API Error Response:', errorText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Shopify API Response Data:', data);
+    const result = await response.json();
+    console.log('Server proxy response:', result);
     
-    if (data.errors) {
-      console.error('GraphQL Errors:', data.errors);
-      throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
-    }
-
-    const result = cartId ? data.data?.cartLinesAdd : data.data?.cartCreate;
-    
-    if (!result) {
-      throw new Error('No result data received from Shopify API');
-    }
-    
-    if (result.userErrors && result.userErrors.length > 0) {
-      console.error('Shopify User Errors:', result.userErrors);
-      throw new Error(`Shopify errors: ${JSON.stringify(result.userErrors)}`);
-    }
-
-    return {
-      success: true,
-      cart: result.cart,
-      checkoutUrl: result.cart.checkoutUrl
-    };
+    return result;
   } catch (error) {
-    console.error('Error adding to Shopify cart:', error);
+    console.error('Error in client addToShopifyCart:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Network error occurred'
     };
   }
 }
@@ -303,5 +265,34 @@ export async function getShopifyCart(config: ShopifyConfig, cartId: string) {
   } catch (error) {
     console.error('Error fetching cart:', error);
     return null;
+  }
+}
+
+// Test Shopify connection and product variant
+export async function testShopifyConnection(config: ShopifyConfig) {
+  const validation = validateShopifyConfig(config);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: `Configuration error: ${validation.error}`
+    };
+  }
+  
+  try {
+    const response = await fetch('/api/shopify/test-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config)
+    });
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred'
+    };
   }
 }

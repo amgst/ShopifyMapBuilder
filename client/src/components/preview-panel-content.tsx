@@ -16,7 +16,11 @@ export default function PreviewPanelContent() {
     { id: "compact", label: '8" × 6" Compact', price: 49.99 },
   ];
 
-  const currentSize = sizeOptions.find(s => s.id === state.productSettings?.size) || sizeOptions[0];
+  const currentPrice = (() => {
+    const currentSize = state.productSettings?.size || 'standard';
+    const sizeInfo = sizeOptions.find(s => s.id === currentSize);
+    return sizeInfo?.price || 64.99;
+  })();
 
   const handleSaveDesign = async () => {
     setIsExporting(true);
@@ -33,9 +37,10 @@ export default function PreviewPanelContent() {
       
       const result = await exportMapImage(previewElement, {
         orderId,
-        targetSize: 15, // 15MB target
-        minSize: 8,     // 8MB minimum
-        maxSize: 30     // 30MB maximum
+        targetSize: 15, // Target 15MB within 8-30MB range
+        minSize: 8,     // Minimum 8MB as specified
+        maxSize: 30,    // Maximum 30MB as specified
+        shopifyOrderNumber: `Order${orderId}` // Include Shopify order number format
       });
 
       // Download the image
@@ -76,7 +81,7 @@ export default function PreviewPanelContent() {
             <div className="flex justify-between">
               <span>Product:</span>
               <span className="capitalize">
-                {currentSize.label} {state.productSettings?.material || 'Wood'} {state.productSettings?.shape || 'Rectangle'}
+                {sizeOptions.find(s => s.id === (state.productSettings?.size || 'standard'))?.label} {state.productSettings?.material || 'Wood'} {state.productSettings?.shape || 'Rectangle'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -95,7 +100,7 @@ export default function PreviewPanelContent() {
             </div>
             <div className="flex justify-between font-medium pt-2 border-t border-border">
               <span>Total:</span>
-              <span>${currentSize.price}</span>
+              <span>${currentPrice}</span>
             </div>
           </div>
         </div>
@@ -113,12 +118,12 @@ export default function PreviewPanelContent() {
             {isExporting ? (
               <>
                 <Download className="h-4 w-4 mr-2 animate-spin" />
-                Generating Image...
+                Generating High-Quality Image...
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Design
+                Save Design (300 DPI)
               </>
             )}
           </Button>
@@ -127,7 +132,8 @@ export default function PreviewPanelContent() {
         {/* Product Details */}
         <div className="text-xs text-muted-foreground space-y-1">
           <p>• High-quality engraving at 300 DPI resolution</p>
-          <p>• Black and white design as shown in preview</p>
+          <p>• True black and white design (no gradients)</p>
+          <p>• JPEG format: 8-30MB for engraving consistency</p>
           <p>• Processing time: 3-5 business days</p>
           <p>• Free shipping on orders over $50</p>
         </div>

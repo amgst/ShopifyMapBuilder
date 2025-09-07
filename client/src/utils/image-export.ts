@@ -1,7 +1,6 @@
-import html2canvas from 'html2canvas';
-
 export interface ImageExportOptions {
   orderId?: string;
+  shopifyOrderNumber?: string; // Shopify order number for filename
   targetSize?: number; // Target file size in MB
   minSize?: number; // Minimum file size in MB
   maxSize?: number; // Maximum file size in MB
@@ -15,7 +14,8 @@ export interface ExportResult {
 }
 
 /**
- * Converts an image to true black and white (no gradients)
+ * Converts an image to true black and white (no gradients) as specified
+ * Enhanced for high-quality map tiles
  * White = land/text/icons, Black = water/engraved areas
  */
 function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
@@ -23,8 +23,10 @@ function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
 
-  // Enhanced threshold logic for better map conversion
-  const threshold = 140; // Slightly higher threshold for cleaner separation
+  // Enhanced threshold for high-quality map conversion
+  const threshold = 140; // Slightly higher for better map detail preservation
+  
+  console.log(`Converting ${canvas.width}x${canvas.height} high-quality image to true black/white`);
   
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
@@ -35,26 +37,38 @@ function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
     // Skip transparent pixels
     if (a === 0) continue;
     
-    // Calculate weighted luminance (optimized for map colors)
+    // Calculate luminance for black/white decision
     const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
     
-    // Enhanced conversion logic for map elements:
-    // - Text and icons should be white (not engraved)
-    // - Water areas should be black (engraved)
-    // - Land should be white (not engraved)
+    // Enhanced conversion logic for high-quality maps:
     let value: number;
     
-    // Check if this is likely a text/icon element (high contrast)
-    const isHighContrast = (r > 200 && g > 200 && b > 200) || (r < 50 && g < 50 && b < 50);
+    // Detect text and icon elements (should be white - not engraved)
+    const isTextOrIcon = (r > 200 && g > 200 && b > 200) || (r < 50 && g < 50 && b < 50);
     
-    if (isHighContrast) {
-      // For high contrast elements (text/icons), ensure they become white
-      value = luminance > 50 ? 255 : 0;
+    // Detect water areas (typically blue-ish in color maps)
+    const isWater = (b > r + 20 && b > g + 20) || (r < 100 && g < 100 && b > 120);
+    
+    // Detect roads and paths (typically gray or white lines)
+    const isRoadOrPath = Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r > 180;
+    
+    if (isTextOrIcon) {
+      // Text and icons should be white (not engraved)
+      value = luminance > 30 ? 255 : 0;
+    } else if (isWater) {
+      // Water areas should be black (engraved)
+      value = 0;
+    } else if (isRoadOrPath) {
+      // Roads and paths should be white (not engraved)
+      value = 255;
     } else {
-      // For map elements, use standard threshold
+      // For other map elements: use enhanced threshold
+      // Land areas become white (not engraved)
+      // Dark features become black (engraved)
       value = luminance > threshold ? 255 : 0;
     }
     
+    // Apply pure black (0) or pure white (255) - no gradients
     data[i] = value;     // Red
     data[i + 1] = value; // Green
     data[i + 2] = value; // Blue
@@ -62,6 +76,7 @@ function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
   }
 
   ctx.putImageData(imageData, 0, 0);
+  console.log('High-quality black/white conversion completed');
   return canvas;
 }
 
@@ -105,7 +120,8 @@ async function adjustQualityForSize(
 }
 
 /**
- * Captures and exports the map preview as a high-quality black and white image
+ * Captures and exports the map preview as a high-quality JPEG for professional engraving
+ * Follows exact specifications: 300 DPI, 8-30MB, true black/white
  */
 export async function exportMapImage(
   element: HTMLElement,
@@ -113,89 +129,160 @@ export async function exportMapImage(
 ): Promise<ExportResult> {
   const {
     orderId = `Order${Date.now()}`,
+    shopifyOrderNumber,
     targetSize = 15, // Target 15MB
-    minSize = 8,     // Minimum 8MB
-    maxSize = 30     // Maximum 30MB
+    minSize = 8,     // Minimum 8MB as specified
+    maxSize = 30     // Maximum 30MB as specified
   } = options;
 
   try {
-    // Wait for any pending renders
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait for map tiles to fully load
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Increased wait for tile loading
 
-    // Calculate scale for 300 DPI output
-    // Standard screen DPI is ~96, so scale factor for 300 DPI is ~3.125
+    // Calculate scale for exactly 300 DPI output (as specified)
     const targetDPI = 300;
     const screenDPI = 96;
-    const scale = targetDPI / screenDPI;
+    const scale = targetDPI / screenDPI; // 3.125x scale factor
     
+    console.log(`Generating ultra-high quality image with ${scale}x scale factor for professional print quality`);
+    
+    // Get the actual element dimensions
+    const elementRect = element.getBoundingClientRect();
+    const actualWidth = Math.ceil(elementRect.width);
+    const actualHeight = Math.ceil(elementRect.height);
+    
+    console.log(`Element dimensions: ${actualWidth}x${actualHeight}px, Output: ${Math.ceil(actualWidth * scale)}x${Math.ceil(actualHeight * scale)}px`);
+    
+    // Enhanced html2canvas settings for maximum quality
     const canvas = await html2canvas(element, {
       scale: scale,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
-      logging: false,
-      width: element.offsetWidth,
-      height: element.offsetHeight,
+      logging: false, // Disable logging for cleaner output
+      width: actualWidth,
+      height: actualHeight,
       removeContainer: true,
+      imageTimeout: 60000, // Increased timeout for high-quality tile loading
+      foreignObjectRendering: false, // Better compatibility with map tiles
+      // Enhanced quality settings
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: actualWidth,
+      windowHeight: actualHeight,
+      // Force high-quality rendering
+      proxy: undefined,
+      taintTest: false,
+      ignoreElements: (element): boolean => {
+        // Skip problematic elements during render
+        const hasControlClass = element.classList.contains('ol-control') || 
+               element.classList.contains('ol-attribution');
+        const hasZoomTestId = element.hasAttribute('data-testid') && 
+               (element.getAttribute('data-testid')?.includes('zoom') ?? false);
+        return hasControlClass || hasZoomTestId;
+      },
       onclone: (clonedDoc) => {
+        // Force high-DPI rendering on cloned document
+        const style = clonedDoc.createElement('style');
+        style.textContent = `
+          * {
+            image-rendering: -webkit-optimize-contrast !important;
+            image-rendering: high-quality !important;
+            image-rendering: crisp-edges !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+            text-rendering: optimizeLegibility !important;
+          }
+          canvas {
+            image-rendering: -webkit-optimize-contrast !important;
+            image-rendering: high-quality !important;
+          }
+          .ol-layer canvas {
+            image-rendering: pixelated !important;
+          }
+        `;
+        clonedDoc.head.appendChild(style);
+        
         // Clean up the cloned document for export
         const clonedElement = clonedDoc.body;
         
-        // Remove zoom controls
-        const zoomControls = clonedElement.querySelectorAll('[data-testid*="zoom"], .absolute.top-4.right-4');
-        zoomControls.forEach(el => el.remove());
+        // Remove zoom controls and interactive UI elements
+        const uiElements = clonedElement.querySelectorAll(
+          '[data-testid*="zoom"], .absolute.top-4.right-4, .cursor-se-resize, .hover\\:bg-black\\/10, [data-testid*="resize"]'
+        );
+        uiElements.forEach(el => el.remove());
         
-        // Remove resize handles and interactive elements
-        const interactiveElements = clonedElement.querySelectorAll('.cursor-se-resize, .hover\\:bg-black\\/10, [data-testid*="resize"]');
-        interactiveElements.forEach(el => el.remove());
-        
-        // Remove any overlay UI elements
+        // Remove overlay elements but keep location info
         const overlays = clonedElement.querySelectorAll('.absolute.top-4.left-4, .absolute.bottom-2.left-2');
         overlays.forEach(el => {
-          // Keep location info but remove zoom level indicators
           if (el.textContent?.includes('Zoom:')) {
             el.remove();
           }
         });
         
-        // Ensure high contrast for text elements
+        // Optimize text elements for engraving (black text on white background)
         const textElements = clonedElement.querySelectorAll('[data-testid*="draggable-text"]');
         textElements.forEach(el => {
           const htmlEl = el as HTMLElement;
-          htmlEl.style.color = '#000000';
-          htmlEl.style.textShadow = '2px 2px 4px #ffffff, -2px -2px 4px #ffffff, 2px -2px 4px #ffffff, -2px 2px 4px #ffffff';
+          htmlEl.style.color = '#000000'; // Black text
           htmlEl.style.fontWeight = 'bold';
+          htmlEl.style.textShadow = 'none'; // Remove shadows for clean engraving
+          htmlEl.style.letterSpacing = '0.5px';
         });
         
-        // Ensure high contrast for icons
+        // Optimize icons for engraving (black icons on white background)
         const iconElements = clonedElement.querySelectorAll('[data-testid*="draggable-icon"] svg, [data-testid*="draggable-compass"] svg');
         iconElements.forEach(el => {
           const htmlEl = el as HTMLElement;
-          htmlEl.style.color = '#000000';
-          htmlEl.style.filter = 'drop-shadow(2px 2px 4px #ffffff) drop-shadow(-2px -2px 4px #ffffff) drop-shadow(2px -2px 4px #ffffff) drop-shadow(-2px 2px 4px #ffffff)';
+          htmlEl.style.color = '#000000'; // Black icons
+          htmlEl.style.fill = '#000000';
+          htmlEl.style.stroke = '#000000';
+          htmlEl.style.strokeWidth = '1.5px';
+          htmlEl.style.filter = 'none'; // Remove filters for clean engraving
+        });
+        
+        // Ensure map renders at high quality
+        const mapElements = clonedElement.querySelectorAll('.ol-layer, canvas');
+        mapElements.forEach(el => {
+          const htmlEl = el as HTMLElement;
+          htmlEl.style.imageRendering = 'high-quality';
         });
       }
     });
 
-    // Convert to true black and white
+    console.log(`Canvas generated: ${canvas.width}x${canvas.height} pixels at 300 DPI`);
+
+    // Convert to true black and white (as specified: no gradients)
     const bwCanvas = convertToBlackAndWhite(canvas);
 
-    // Adjust quality to achieve target file size
+    // Generate high-quality JPEG within specified size range (8-30MB)
     const { blob, quality } = await adjustQualityForSize(
       bwCanvas,
       targetSize,
       minSize,
       maxSize
     );
+    
+    console.log(`JPEG quality used: ${(quality * 100).toFixed(1)}%`);
 
-    // Generate filename with order ID
+    // Generate filename with Shopify order number (as specified)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${orderId}_Map_${timestamp}.jpeg`;
+    let filename: string;
+    
+    if (shopifyOrderNumber) {
+      // Use Shopify order number format: Order12345_Map.jpeg
+      filename = `${shopifyOrderNumber}_Map.jpeg`;
+    } else {
+      // Fallback format with timestamp
+      filename = `${orderId}_Map_${timestamp}.jpeg`;
+    }
 
     // Create data URL for preview
     const dataUrl = bwCanvas.toDataURL('image/jpeg', quality);
 
     const sizeInMB = blob.size / (1024 * 1024);
+    
+    console.log(`Final image: ${filename} (${sizeInMB.toFixed(1)}MB, ${canvas.width}x${canvas.height}px, 300 DPI)`);
 
     return {
       blob,
