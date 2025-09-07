@@ -51,7 +51,7 @@ const sizeOptions = [
 const shopifyConfig: ShopifyConfig = {
   storeName: 'vgpcreatives',
   storefrontAccessToken: '172c37b6b7a7759406ad719a4f149d42',
-  productVariantId: 'gid://shopify/ProductVariant/48847474024775' // You'll need to provide the actual variant ID
+  productVariantId: 'gid://shopify/ProductVariant/8054005071919'
 };
 
 export default function PreviewPanel() {
