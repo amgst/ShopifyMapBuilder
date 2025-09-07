@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useShopify } from "@/hooks/use-shopify";
 import { CustomMapData, ShopifyConfig } from "@/lib/shopify";
+import { findShopifyProducts } from "@/lib/shopify-debug";
 import InteractiveMap from "@/components/interactive-map";
 
 // Icon mapping for proper display
@@ -210,6 +211,33 @@ export default function PreviewPanel() {
       },
       price: sizeInfo?.price || 64.99
     };
+  };
+
+  // Debug function to find products
+  const handleFindProducts = async () => {
+    try {
+      const products = await findShopifyProducts(shopifyConfig);
+      if (products) {
+        console.log('Available products in your store:', products);
+        toast({
+          title: "Products Found!",
+          description: "Check the browser console (F12) to see all available products and their variant IDs.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not fetch products from your store.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error finding products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch products.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle add to cart
@@ -502,24 +530,35 @@ export default function PreviewPanel() {
             </div>
           </div>
           
-          <Button
-            onClick={handleAddToCart}
-            disabled={isLoading}
-            className="w-full h-12 text-base font-semibold"
-            data-testid="add-to-cart-button"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Adding to Cart...
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart
-              </>
-            )}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              onClick={handleFindProducts}
+              variant="outline"
+              className="w-full h-10 text-sm"
+              data-testid="find-products-button"
+            >
+              🔍 Find Correct Product ID
+            </Button>
+            
+            <Button
+              onClick={handleAddToCart}
+              disabled={isLoading}
+              className="w-full h-12 text-base font-semibold"
+              data-testid="add-to-cart-button"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Adding to Cart...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  Add to Cart
+                </>
+              )}
+            </Button>
+          </div>
           
           <div className="mt-3 text-xs text-muted-foreground text-center">
             <p>✓ Free shipping on orders over $75</p>
