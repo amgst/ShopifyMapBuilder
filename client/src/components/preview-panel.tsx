@@ -194,9 +194,10 @@ export default function PreviewPanel() {
               <div 
                 ref={previewRef}
                 data-testid="map-preview-area"
-                className={`absolute inset-0 bg-white overflow-hidden ${
+                className={`absolute inset-0 overflow-hidden ${
                   state.productSettings?.shape === 'circle' ? 'rounded-full' : ''
                 }`}
+                style={{ backgroundColor: '#e6e6e6' }}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
