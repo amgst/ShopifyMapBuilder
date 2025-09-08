@@ -28,7 +28,13 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
       crossOrigin: 'anonymous',
       // Enhanced tile loading for better quality
       transition: 0,
-      tilePixelRatio: window.devicePixelRatio || 1
+      tilePixelRatio: window.devicePixelRatio || 1,
+      // Enable canvas export
+      tileLoadFunction: function(tile, src) {
+        const img = tile.getImage() as HTMLImageElement;
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+      }
     })
   });
   
@@ -52,7 +58,13 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
       attributions: '© OpenStreetMap contributors, © CartoDB',
       crossOrigin: 'anonymous',
       transition: 0,
-      tilePixelRatio: window.devicePixelRatio || 1
+      tilePixelRatio: window.devicePixelRatio || 1,
+      // Enable canvas export
+      tileLoadFunction: function(tile, src) {
+        const img = tile.getImage() as HTMLImageElement;
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+      }
     })
   });
   
@@ -61,7 +73,13 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
     source: new OSM({
       maxZoom: 19,
       crossOrigin: 'anonymous',
-      transition: 0
+      transition: 0,
+      // Enable canvas export
+      tileLoadFunction: function(tile, src) {
+        const img = tile.getImage() as HTMLImageElement;
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+      }
     })
   });
   
