@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useMapBuilder } from "@/hooks/use-map-builder";
+import { useShopifyPricing, getPriceWithFallback } from "@/hooks/use-shopify-pricing";
+import { ShopifyConfig } from "@/lib/shopify";
 import { cn } from "@/lib/utils";
 
 const productShapes = [
@@ -11,10 +13,17 @@ const productShapes = [
 ] as const;
 
 const sizeOptions = [
-  { id: "standard", label: '12" × 8" Standard', description: "Perfect for detailed maps", price: 64.99 },
-  { id: "large", label: '16" × 10" Large', description: "Premium size option", price: 89.99 },
-  { id: "compact", label: '8" × 6" Compact', description: "Great for smaller spaces", price: 49.99 },
+  { id: "standard", label: '12" × 8" Standard', description: "Perfect for detailed maps" },
+  { id: "large", label: '16" × 10" Large', description: "Premium size option" },
+  { id: "compact", label: '8" × 6" Compact', description: "Great for smaller spaces" },
 ];
+
+// Shopify configuration
+const shopifyConfig: ShopifyConfig = {
+  storeName: 'vgpcreatives',
+  storefrontAccessToken: '172c37b6b7a7759406ad719a4f149d42',
+  productVariantId: 'gid://shopify/ProductVariant/41068385009711'
+};
 
 const materialOptions = [
   { 
@@ -56,9 +65,12 @@ const materialOptions = [
 
 export default function StylePanel() {
   const { state, updateProductSettings } = useMapBuilder();
-  const [selectedShape, setSelectedShape] = useState<string>(state.productSettings?.shape || "rectangle");
-  const [selectedSize, setSelectedSize] = useState<string>("standard");
-  const [selectedMaterial, setSelectedMaterial] = useState<string>(state.productSettings?.material || "oak");
+  const [selectedShape, setSelectedShape] = useState(state.productSettings?.shape || "rectangle");
+  const [selectedSize, setSelectedSize] = useState(state.productSettings?.size || "standard");
+  const [selectedMaterial, setSelectedMaterial] = useState(state.productSettings?.material || "oak");
+  
+  // Fetch actual Shopify product price
+  const { price: shopifyPrice, currency, loading: priceLoading } = useShopifyPricing(shopifyConfig);
 
   const handleShapeChange = (shapeId: string) => {
     setSelectedShape(shapeId);
@@ -161,7 +173,13 @@ export default function StylePanel() {
                       <div className="font-medium">{size.label}</div>
                       <div className="text-sm text-muted-foreground">{size.description}</div>
                     </div>
-                    <div className="font-medium">${size.price}</div>
+                    <div className="font-medium">
+                      {priceLoading ? (
+                        <span className="text-gray-500">Loading...</span>
+                      ) : (
+                        `${currency === 'USD' ? '$' : currency + ' '}${getPriceWithFallback(shopifyPrice, size.id).toFixed(2)}`
+                      )}
+                    </div>
                   </div>
                 </Button>
               );

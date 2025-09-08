@@ -384,31 +384,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin API Routes
   app.get("/api/admin/check-access", async (req, res) => {
-    try {
-      // For demo purposes, we'll accept a test admin user
-      // In production, this would check actual session/authentication
-      const userId = req.headers['x-user-id'] as string || 'admin-user-id';
-      
-      // Create test admin user if needed
-      let user = await storage.getUserByUsername('admin');
-      if (!user) {
-        user = await storage.createUser({
-          username: "admin",
-          password: "admin123",
-          email: "admin@mapbuilder.com", 
-          role: "admin"
-        });
-      }
-      
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-      }
+    const checkAccessHandler = await import('../api/admin/check-access');
+    return checkAccessHandler.default(req, res);
+  });
 
-      res.json({ success: true, user: { id: user.id, username: user.username, role: user.role } });
-    } catch (error) {
-      console.error('Admin access check failed:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
+  // Admin login route
+  app.post("/api/admin/login", async (req, res) => {
+    const loginHandler = await import('../api/admin/login');
+    return loginHandler.default(req, res);
+  });
+
+  app.get("/api/admin/store-analytics", async (req, res) => {
+    const storeAnalyticsHandler = await import('../api/admin/store-analytics');
+    return storeAnalyticsHandler.handler(req, res);
   });
 
   app.get("/api/admin/stats", async (req, res) => {

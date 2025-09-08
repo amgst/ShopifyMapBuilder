@@ -19,6 +19,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, desc, and, sql } from "drizzle-orm";
 import pg from "pg";
 import { randomUUID } from "crypto";
+import { MemoryStorage } from "./memory-storage";
 
 export interface IStorage {
   // User methods
@@ -195,4 +196,31 @@ export class PostgreSQLStorage implements IStorage {
   }
 }
 
-export const storage = new PostgreSQLStorage();
+// Use memory storage if no valid database URL is provided
+function createStorage(): IStorage {
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (!databaseUrl || databaseUrl === 'postgresql://username:password@hostname:port/database') {
+    console.log('Using in-memory storage (no database configured)');
+    return new MemoryStorage();
+  }
+  
+  try {
+    console.log('Using PostgreSQL storage');
+    return new PostgreSQLStorage();
+  } catch (error) {
+    console.warn('Failed to connect to PostgreSQL, falling back to memory storage:', error);
+    return new MemoryStorage();
+  }
+}
+
+// Lazy initialization to ensure environment variables are loaded first
+let _storage: IStorage | null = null;
+export const storage: IStorage = new Proxy({} as IStorage, {
+  get(target, prop) {
+    if (!_storage) {
+      _storage = createStorage();
+    }
+    return (_storage as any)[prop];
+  }
+});

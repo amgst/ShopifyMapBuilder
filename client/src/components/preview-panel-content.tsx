@@ -5,22 +5,22 @@ import { exportMapImage, downloadImage } from "@/utils/image-export";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-export default function PreviewPanelContent() {
+interface PreviewPanelContentProps {
+  currentPrice: number;
+  currency?: string;
+  priceLoading?: boolean;
+}
+
+export default function PreviewPanelContent({ currentPrice, currency = 'USD', priceLoading = false }: PreviewPanelContentProps) {
   const { state } = useMapBuilder();
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
 
   const sizeOptions = [
-    { id: "standard", label: '12" × 8" Standard', price: 64.99 },
-    { id: "large", label: '16" × 10" Large', price: 89.99 },
-    { id: "compact", label: '8" × 6" Compact', price: 49.99 },
+    { id: "standard", label: '12" × 8" Standard' },
+    { id: "large", label: '16" × 10" Large' },
+    { id: "compact", label: '8" × 6" Compact' },
   ];
-
-  const currentPrice = (() => {
-    const currentSize = state.productSettings?.size || 'standard';
-    const sizeInfo = sizeOptions.find(s => s.id === currentSize);
-    return sizeInfo?.price || 64.99;
-  })();
 
   const handleSaveDesign = async () => {
     setIsExporting(true);
@@ -103,7 +103,13 @@ export default function PreviewPanelContent() {
             </div>
             <div className="flex justify-between font-medium pt-2 border-t border-border">
               <span>Total:</span>
-              <span>${currentPrice}</span>
+              <span>
+                {priceLoading ? (
+                  <span className="text-gray-500">Loading...</span>
+                ) : (
+                  `${currency === 'USD' ? '$' : currency + ' '}${currentPrice.toFixed(2)}`
+                )}
+              </span>
             </div>
           </div>
         </div>

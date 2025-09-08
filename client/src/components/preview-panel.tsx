@@ -14,15 +14,19 @@ import {
   Plus,
   Minus,
   ShoppingCart,
-  Loader2
+  Loader2,
+  Box,
+  Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useShopify } from "@/hooks/use-shopify";
+import { useShopifyPricing, getPriceWithFallback } from "@/hooks/use-shopify-pricing";
 import { CustomMapData, ShopifyConfig } from "@/lib/shopify";
 import { findShopifyProducts } from "@/lib/shopify-debug";
 import { testShopifyConnection } from "@/lib/shopify";
 import InteractiveMap from "@/components/interactive-map";
+import ThreeDPreview from "@/components/3d-preview";
 
 // Icon mapping for proper display
 const iconComponents = {
@@ -42,11 +46,11 @@ const compassComponents = {
   arrow: Navigation,
 };
 
-// Size price mapping
+// Size options (prices now fetched from Shopify)
 const sizeOptions = [
-  { id: "standard", label: '12" × 8" Standard', description: "Perfect for detailed maps", price: 64.99 },
-  { id: "large", label: '16" × 10" Large', description: "Premium size option", price: 89.99 },
-  { id: "compact", label: '8" × 6" Compact', description: "Great for smaller spaces", price: 49.99 },
+  { id: "standard", label: '12" × 8" Standard', description: "Perfect for detailed maps" },
+  { id: "large", label: '16" × 10" Large', description: "Premium size option" },
+  { id: "compact", label: '8" × 6" Compact', description: "Great for smaller spaces" },
 ];
 
 // Shopify configuration
@@ -60,6 +64,10 @@ export default function PreviewPanel() {
   const { state, updateTextPosition, updateIconPosition, updateIconSize, updateCompassPosition, updateMapZoom } = useMapBuilder();
   const { toast } = useToast();
   const { isLoading, addToCart } = useShopify();
+  
+  // Fetch actual Shopify product price
+  const { price: shopifyPrice, currency, loading: priceLoading, error: priceError } = useShopifyPricing(shopifyConfig);
+  const [show3D, setShow3D] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     isResizing: boolean;
@@ -230,8 +238,7 @@ export default function PreviewPanel() {
       },
       price: (() => {
         const currentSize = state.productSettings?.size || 'standard';
-        const sizeInfo = sizeOptions.find(s => s.id === currentSize);
-        return sizeInfo?.price || 64.99;
+        return getPriceWithFallback(shopifyPrice, currentSize);
       })()
     };
   };
@@ -319,37 +326,10 @@ export default function PreviewPanel() {
       console.log('Add to cart result:', result);
       
       if (result.success) {
-        // Show success toast with action button
-        toast({
-          title: "Added to Cart!",
-          description: `Your custom map has been added to cart.`,
-          action: (
-            <div className="flex gap-2">
-              {result.checkoutUrl && (
-                <>
-                  <button
-                    onClick={() => {
-                      // Use the actual cart URL that contains the items
-                      // This is where the Storefront API cart items are stored
-                      window.open(result.checkoutUrl!, '_blank');
-                    }}
-                    className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
-                  >
-                    View Cart
-                  </button>
-                  <button
-                    onClick={() => window.open(result.checkoutUrl!, '_blank')}
-                    className="px-3 py-1 bg-secondary text-secondary-foreground rounded text-sm hover:bg-secondary/90"
-                  >
-                    Checkout Now
-                  </button>
-                </>
-              )}
-            </div>
-          ),
-        });
-        
-        // Removed automatic redirect - users will only go to cart when they click the buttons
+        // Redirect directly to checkout without extra notes
+        if (result.checkoutUrl) {
+          window.open(result.checkoutUrl, '_blank');
+        }
       } else {
         console.error('Add to cart failed:', result.error);
         toast({
@@ -419,123 +399,161 @@ export default function PreviewPanel() {
                 onMouseLeave={handleMouseUp}
                 onWheel={handleWheel}
               >
-                {/* Interactive Map - Users can click to select locations */}
-                <div className="w-full h-full relative">
-                  {/* Map - Clear view for testing */}
-                  <div className="absolute inset-0 overflow-hidden">
-                    <InteractiveMap className="w-full h-full" />
-                  </div>
-                  
-                  
-                  
-                  {/* Custom texts */}
-                  {state.customizations.texts.map((text) => (
-                    <div
-                      key={text.id}
-                      className="absolute font-medium cursor-move hover:bg-black/10 rounded px-1"
-                      style={{
-                        left: `${text.x}%`,
-                        top: `${text.y}%`,
-                        fontSize: `${Math.max(8, text.fontSize * 0.6)}px`,
-                        fontFamily: text.fontFamily,
-                        color: '#000000',
-                        fontWeight: text.fontFamily.includes('Bold') ? 'bold' : 'normal',
-                        transform: 'translate(-50%, -50%)',
+                {show3D ? (
+                  /* 3D Preview */
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ThreeDPreview 
+                      mapData={{
+                        shape: state.productSettings?.shape || 'rectangle',
+                        width: state.productSettings?.shape === 'circle' ? 300 : 
+                               state.productSettings?.shape === 'stick' ? 400 : 
+                               state.productSettings?.shape === 'twig' ? 600 : 400,
+                        height: state.productSettings?.shape === 'circle' ? 300 : 
+                                state.productSettings?.shape === 'stick' ? 200 : 
+                                state.productSettings?.shape === 'twig' ? 150 : 300,
+                        imageUrl: undefined // We'll add texture loading later
                       }}
-                      onMouseDown={(e) => handleMouseDown(e, 'text', text.id, text.x, text.y)}
-                      data-testid={`draggable-text-${text.id}`}
-                    >
-                      {text.content}
+                      visible={true}
+                    />
+                  </div>
+                ) : (
+                  /* 2D Interactive Map */
+                  <div className="w-full h-full relative">
+                    {/* Map - Clear view for testing */}
+                    <div className="absolute inset-0 overflow-hidden">
+                      <InteractiveMap className="w-full h-full" />
                     </div>
-                  ))}
                   
-                  {/* Icons */}
-                  {state.customizations.icons.map((icon) => {
-                    const IconComponent = iconComponents[icon.type as keyof typeof iconComponents] || MapPin;
-                    return (
+                    {/* Custom texts - only in 2D mode */}
+                    {state.customizations.texts.map((text) => (
                       <div
-                        key={icon.id}
-                        className="absolute group"
+                        key={text.id}
+                        className="absolute font-medium cursor-move hover:bg-black/10 rounded px-1"
                         style={{
-                          left: `${icon.x}%`,
-                          top: `${icon.y}%`,
+                          left: `${text.x}%`,
+                          top: `${text.y}%`,
+                          fontSize: `${Math.max(8, text.fontSize * 0.6)}px`,
+                          fontFamily: text.fontFamily,
+                          color: '#000000',
+                          fontWeight: text.fontFamily.includes('Bold') ? 'bold' : 'normal',
                           transform: 'translate(-50%, -50%)',
                         }}
-                        data-testid={`draggable-icon-${icon.id}`}
+                        onMouseDown={(e) => handleMouseDown(e, 'text', text.id, text.x, text.y)}
+                        data-testid={`draggable-text-${text.id}`}
                       >
-                        {/* Icon */}
+                        {text.content}
+                      </div>
+                    ))}
+                    
+                    {/* Icons - only in 2D mode */}
+                    {state.customizations.icons.map((icon) => {
+                      const IconComponent = iconComponents[icon.type as keyof typeof iconComponents] || MapPin;
+                      return (
                         <div
-                          className="cursor-move hover:bg-black/10 rounded p-1 relative"
-                          onMouseDown={(e) => handleMouseDown(e, 'icon', icon.id, icon.x, icon.y)}
+                          key={icon.id}
+                          className="absolute group"
+                          style={{
+                            left: `${icon.x}%`,
+                            top: `${icon.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                          data-testid={`draggable-icon-${icon.id}`}
                         >
-                          <IconComponent 
+                          {/* Icon */}
+                          <div
+                            className="cursor-move hover:bg-black/10 rounded p-1 relative"
+                            onMouseDown={(e) => handleMouseDown(e, 'icon', icon.id, icon.x, icon.y)}
+                          >
+                            <IconComponent 
+                              className="text-black"
+                              style={{
+                                filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)'
+                              }}
+                              size={Math.max(12, icon.size * 0.5)}
+                            />
+                            
+                            {/* Resize Handle */}
+                            <div
+                              className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border-2 border-white rounded-full cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
+                              onMouseDown={(e) => handleResizeStart(e, icon.id, icon.size)}
+                              title="Drag to resize"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Compass - only in 2D mode */}
+                    {state.customizations.compass && (() => {
+                      const CompassComponent = compassComponents[state.customizations.compass.type as keyof typeof compassComponents] || Compass;
+                      return (
+                        <div
+                          className="absolute cursor-move hover:bg-black/10 rounded-full p-2"
+                          style={{
+                            left: `${state.customizations.compass.x}%`,
+                            top: `${state.customizations.compass.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                          onMouseDown={(e) => handleMouseDown(e, 'compass', 'compass', state.customizations.compass!.x, state.customizations.compass!.y)}
+                          data-testid="draggable-compass"
+                        >
+                          <CompassComponent 
                             className="text-black"
                             style={{
                               filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)'
                             }}
-                            size={Math.max(12, icon.size * 0.5)}
-                          />
-                          
-                          {/* Resize Handle */}
-                          <div
-                            className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border-2 border-white rounded-full cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
-                            onMouseDown={(e) => handleResizeStart(e, icon.id, icon.size)}
-                            title="Drag to resize"
+                            size={Math.max(16, state.customizations.compass.size * 0.5)}
                           />
                         </div>
-                      </div>
-                    );
-                  })}
-                  
-                  {/* Compass */}
-                  {state.customizations.compass && (() => {
-                    const CompassComponent = compassComponents[state.customizations.compass.type as keyof typeof compassComponents] || Compass;
-                    return (
-                      <div
-                        className="absolute cursor-move hover:bg-black/10 rounded-full p-2"
-                        style={{
-                          left: `${state.customizations.compass.x}%`,
-                          top: `${state.customizations.compass.y}%`,
-                          transform: 'translate(-50%, -50%)',
-                        }}
-                        onMouseDown={(e) => handleMouseDown(e, 'compass', 'compass', state.customizations.compass!.x, state.customizations.compass!.y)}
-                        data-testid="draggable-compass"
-                      >
-                        <CompassComponent 
-                          className="text-black"
-                          style={{
-                            filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 1px white) drop-shadow(0 0 1px white)'
-                          }}
-                          size={Math.max(16, state.customizations.compass.size * 0.5)}
-                        />
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Zoom Controls */}
-                  <div className="absolute top-4 right-4 flex flex-col gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-8 h-8 p-0 bg-white hover:bg-gray-50 shadow-md"
-                      onClick={handleZoomIn}
-                      title="Zoom in"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-8 h-8 p-0 bg-white hover:bg-gray-50 shadow-md"
-                      onClick={handleZoomOut}
-                      title="Zoom out"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
+                      );
+                    })()}
                   </div>
-
-
+                )}
+                
+                {/* Zoom Controls */}
+                <div className="absolute top-4 right-4 flex flex-col gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-8 h-8 p-0 bg-white hover:bg-gray-50 shadow-md"
+                    onClick={handleZoomIn}
+                    title="Zoom in"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-8 h-8 p-0 bg-white hover:bg-gray-50 shadow-md"
+                    onClick={handleZoomOut}
+                    title="Zoom out"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
                 </div>
+
+                {/* 3D/2D Toggle */}
+                <div className="absolute top-4 left-4 flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={!show3D ? "default" : "outline"}
+                    className="px-3 h-8 bg-white hover:bg-gray-50 shadow-md text-xs"
+                    onClick={() => setShow3D(false)}
+                    title="2D View"
+                  >
+                    <Map className="h-3 w-3 mr-1" />
+                    2D
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={show3D ? "default" : "outline"}
+                    className="px-3 h-8 bg-white hover:bg-gray-50 shadow-md text-xs"
+                    onClick={() => setShow3D(true)}
+                    title="3D View"
+                  >
+                    <Box className="h-3 w-3 mr-1" />
+                    3D
+                  </Button>
               </div>
             </div>
             
@@ -556,5 +574,6 @@ export default function PreviewPanel() {
 
       </div>
     </div>
+  </div>
   );
 }

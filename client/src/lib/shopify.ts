@@ -296,3 +296,44 @@ export async function testShopifyConnection(config: ShopifyConfig) {
     };
   }
 }
+
+// Fetch product price from Shopify
+export async function fetchShopifyProductPrice(config: ShopifyConfig): Promise<{ success: boolean; price?: number; currency?: string; error?: string }> {
+  const validation = validateShopifyConfig(config);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: `Configuration error: ${validation.error}`
+    };
+  }
+  
+  try {
+    const response = await fetch('/api/shopify/test-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success && result.variant?.price) {
+      return {
+        success: true,
+        price: parseFloat(result.variant.price.amount),
+        currency: result.variant.price.currencyCode
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Could not fetch product price'
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred'
+    };
+  }
+}

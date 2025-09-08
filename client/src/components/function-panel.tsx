@@ -4,6 +4,7 @@ import { ShoppingCart, Loader2 } from "lucide-react";
 import { useMapBuilder } from "@/hooks/use-map-builder";
 import { useShopify } from "@/hooks/use-shopify";
 import { useToast } from "@/hooks/use-toast";
+import { useShopifyPricing, getPriceWithFallback } from "@/hooks/use-shopify-pricing";
 import { CustomMapData, ShopifyConfig } from "@/lib/shopify";
 import LocationPanel from "./location-panel";
 import TextPanel from "./text-panel";
@@ -21,24 +22,26 @@ export default function FunctionPanel({ activeTab, sidebarExpanded }: FunctionPa
   const { toast } = useToast();
   const { isLoading, addToCart } = useShopify();
   
-  const sizeOptions = [
-    { id: "standard", label: '12" × 8" Standard', price: 64.99 },
-    { id: "large", label: '16" × 10" Large', price: 89.99 },
-    { id: "compact", label: '8" × 6" Compact', price: 49.99 },
-  ];
-
-  const currentPrice = (() => {
-    const currentSize = state.productSettings?.size || 'standard';
-    const sizeInfo = sizeOptions.find(s => s.id === currentSize);
-    return sizeInfo?.price || 64.99;
-  })();
-
   // Shopify configuration
   const shopifyConfig: ShopifyConfig = {
     storeName: 'vgpcreatives',
     storefrontAccessToken: '172c37b6b7a7759406ad719a4f149d42',
     productVariantId: 'gid://shopify/ProductVariant/41068385009711'
   };
+  
+  // Fetch actual Shopify product price
+  const { price: shopifyPrice, currency, loading: priceLoading, error: priceError } = useShopifyPricing(shopifyConfig);
+  
+  const sizeOptions = [
+    { id: "standard", label: '12" × 8" Standard' },
+    { id: "large", label: '16" × 10" Large' },
+    { id: "compact", label: '8" × 6" Compact' },
+  ];
+
+  const currentPrice = (() => {
+    const currentSize = state.productSettings?.size || 'standard';
+    return getPriceWithFallback(shopifyPrice, currentSize);
+  })();
 
   // Capture all design data for Shopify
   const captureMapData = (): CustomMapData => {
@@ -84,11 +87,7 @@ export default function FunctionPanel({ activeTab, sidebarExpanded }: FunctionPa
         icons: state.customizations.icons || [],
         compass: state.customizations.compass
       },
-      price: (() => {
-        const currentSize = state.productSettings?.size || 'standard';
-        const sizeInfo = sizeOptions.find(s => s.id === currentSize);
-        return sizeInfo?.price || 64.99;
-      })()
+      price: currentPrice
     };
   };
 
@@ -104,37 +103,10 @@ export default function FunctionPanel({ activeTab, sidebarExpanded }: FunctionPa
       console.log('Add to cart result:', result);
       
       if (result.success) {
-        // Show success toast with action button
-        toast({
-          title: "Added to Cart!",
-          description: `Your custom map has been added to cart.`,
-          action: (
-            <div className="flex gap-2">
-              {result.checkoutUrl && (
-                <>
-                  <button
-                    onClick={() => {
-                      // Use the actual cart URL that contains the items
-                      // This is where the Storefront API cart items are stored
-                      window.open(result.checkoutUrl!, '_blank');
-                    }}
-                    className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
-                  >
-                    View Cart
-                  </button>
-                  <button
-                    onClick={() => window.open(result.checkoutUrl!, '_blank')}
-                    className="px-3 py-1 bg-secondary text-secondary-foreground rounded text-sm hover:bg-secondary/90"
-                  >
-                    Checkout Now
-                  </button>
-                </>
-              )}
-            </div>
-          ),
-        });
-        
-        // Removed automatic redirect - users will only go to cart when they click the buttons
+        // Redirect directly to checkout without extra notes
+        if (result.checkoutUrl) {
+          window.open(result.checkoutUrl, '_blank');
+        }
       } else {
         console.error('Add to cart failed:', result.error);
         toast({
@@ -164,7 +136,13 @@ export default function FunctionPanel({ activeTab, sidebarExpanded }: FunctionPa
       case "style":
         return <StylePanel />;
       case "preview":
-        return <PreviewPanelContent />;
+        return (
+          <PreviewPanelContent 
+            currentPrice={currentPrice}
+            currency={currency}
+            priceLoading={priceLoading}
+          />
+        );
       default:
         return <LocationPanel />;
     }

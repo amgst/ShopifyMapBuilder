@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Eye, Users, FileImage, Package, TrendingUp } from "lucide-react";
+import { Download, Eye, Users, FileImage, Package, TrendingUp, Store, ShoppingCart, Archive, DollarSign } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface GeneratedMap {
   id: string;
@@ -47,31 +48,105 @@ interface AdminStats {
   totalDownloads: number;
 }
 
+interface StoreAnalytics {
+  products: {
+    total: number;
+    published: number;
+    draft: number;
+    archived: number;
+  };
+  collections: {
+    total: number;
+    smart: number;
+    custom: number;
+  };
+  orders: {
+    total: number;
+    fulfilled: number;
+    pending: number;
+    cancelled: number;
+    totalValue: number;
+  };
+  customers: {
+    total: number;
+    returning: number;
+    new: number;
+  };
+  inventory: {
+    totalVariants: number;
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+  };
+  store: {
+    name: string;
+    domain: string;
+    plan: string;
+    currency: string;
+    timezone: string;
+    createdAt: string;
+  };
+}
+
 export default function AdminDashboard() {
   const [maps, setMaps] = useState<GeneratedMap[]>([]);
   const [orders, setOrders] = useState<ShopifyOrder[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<AdminStats>({ totalUsers: 0, totalMaps: 0, totalOrders: 0, totalDownloads: 0 });
+  const [storeAnalytics, setStoreAnalytics] = useState<StoreAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+
 
   useEffect(() => {
     checkAdminAccess();
   }, []);
 
+
+
+  useEffect(() => {
+    if (adminToken) {
+      loadStoreAnalytics();
+    }
+  }, [adminToken]);
+
   const checkAdminAccess = async () => {
     try {
-      const response = await fetch('/api/admin/check-access');
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        setIsAdmin(false);
+        setAdminToken(null);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/admin/check-access', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
       if (response.ok) {
         setIsAdmin(true);
+        setAdminToken(token);
         loadAdminData();
       } else {
+        // Token is invalid, remove it
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
         setIsAdmin(false);
-        setLoading(false);
+        setAdminToken(null);
       }
     } catch (error) {
       console.error('Failed to check admin access:', error);
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
       setIsAdmin(false);
+      setAdminToken(null);
+    } finally {
       setLoading(false);
     }
   };
@@ -100,6 +175,32 @@ export default function AdminDashboard() {
       console.error('Failed to load admin data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStoreAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('/api/admin/store-analytics', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStoreAnalytics(data);
+      } else {
+        const errorData = await response.json();
+        setAnalyticsError(errorData.error || 'Failed to load store analytics');
+      }
+    } catch (error) {
+      console.error('Failed to load store analytics:', error);
+      setAnalyticsError('Failed to connect to store analytics');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -136,7 +237,15 @@ export default function AdminDashboard() {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -158,24 +267,14 @@ export default function AdminDashboard() {
   }
 
   if (!isAdmin) {
+    // Redirect to login page
+    window.location.href = '/admin/login';
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-96">
-          <CardHeader>
-            <CardTitle className="text-red-600">Access Denied</CardTitle>
-            <CardDescription>
-              You don't have permission to access the admin dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => window.location.href = '/'}
-              className="w-full"
-            >
-              Back to Map Builder
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p>Redirecting to login...</p>
+        </div>
       </div>
     );
   }
@@ -244,6 +343,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="maps">Generated Maps</TabsTrigger>
           <TabsTrigger value="orders">Shopify Orders</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="analytics">Store Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="maps" className="space-y-4">
@@ -411,6 +511,256 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Store Analytics</h2>
+              <p className="text-gray-600">Comprehensive Shopify store metrics and insights</p>
+            </div>
+            <Button 
+              onClick={loadStoreAnalytics}
+              disabled={analyticsLoading}
+              variant="outline"
+            >
+              {analyticsLoading ? 'Loading...' : 'Refresh Data'}
+            </Button>
+          </div>
+
+          {analyticsError && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center space-x-2">
+                  <div className="text-red-600">
+                    <Package className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-red-800 font-medium">Unable to load store analytics</p>
+                    <p className="text-red-600 text-sm">{analyticsError}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {storeAnalytics && (
+            <>
+              {/* Store Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Store className="h-5 w-5" />
+                    <span>Store Information</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Store Name</p>
+                      <p className="font-medium">{storeAnalytics.store.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Domain</p>
+                      <p className="font-medium">{storeAnalytics.store.domain}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Plan</p>
+                      <p className="font-medium">{storeAnalytics.store.plan}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Currency</p>
+                      <p className="font-medium">{storeAnalytics.store.currency}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Timezone</p>
+                      <p className="font-medium">{storeAnalytics.store.timezone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Created</p>
+                      <p className="font-medium">{formatDate(storeAnalytics.store.createdAt)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Products & Collections */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Package className="h-5 w-5" />
+                      <span>Products</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold">{storeAnalytics.products.total}</span>
+                        <span className="text-gray-600">Total Products</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-green-600">Published</span>
+                          <span className="font-medium">{storeAnalytics.products.published}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-yellow-600">Draft</span>
+                          <span className="font-medium">{storeAnalytics.products.draft}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Archived</span>
+                          <span className="font-medium">{storeAnalytics.products.archived}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Archive className="h-5 w-5" />
+                      <span>Collections</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold">{storeAnalytics.collections.total}</span>
+                        <span className="text-gray-600">Total Collections</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-blue-600">Smart Collections</span>
+                          <span className="font-medium">{storeAnalytics.collections.smart}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-purple-600">Custom Collections</span>
+                          <span className="font-medium">{storeAnalytics.collections.custom}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Orders & Customers */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <ShoppingCart className="h-5 w-5" />
+                      <span>Orders</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold">{storeAnalytics.orders.total}</span>
+                        <span className="text-gray-600">Total Orders</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-green-600">Fulfilled</span>
+                          <span className="font-medium">{storeAnalytics.orders.fulfilled}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-yellow-600">Pending</span>
+                          <span className="font-medium">{storeAnalytics.orders.pending}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-red-600">Cancelled</span>
+                          <span className="font-medium">{storeAnalytics.orders.cancelled}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-2">
+                          <span className="text-gray-600 flex items-center">
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            Total Value
+                          </span>
+                          <span className="font-bold">{storeAnalytics.store.currency} {storeAnalytics.orders.totalValue.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="h-5 w-5" />
+                      <span>Customers</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold">{storeAnalytics.customers.total}</span>
+                        <span className="text-gray-600">Total Customers</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-blue-600">Returning</span>
+                          <span className="font-medium">{storeAnalytics.customers.returning}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-green-600">New</span>
+                          <span className="font-medium">{storeAnalytics.customers.new}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Inventory Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <TrendingUp className="h-5 w-5" />
+                    <span>Inventory Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{storeAnalytics.inventory.totalVariants}</div>
+                      <div className="text-sm text-gray-600">Total Variants</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{storeAnalytics.inventory.inStock}</div>
+                      <div className="text-sm text-gray-600">In Stock</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-600">{storeAnalytics.inventory.lowStock}</div>
+                      <div className="text-sm text-gray-600">Low Stock (≤5)</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">{storeAnalytics.inventory.outOfStock}</div>
+                      <div className="text-sm text-gray-600">Out of Stock</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {!storeAnalytics && !analyticsLoading && !analyticsError && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Store Analytics</h3>
+                  <p className="text-gray-600 mb-4">Click "Refresh Data" to load comprehensive store metrics from your Shopify store.</p>
+                  <Button onClick={loadStoreAnalytics} variant="outline">
+                    Load Store Analytics
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+
       </Tabs>
     </div>
   );
