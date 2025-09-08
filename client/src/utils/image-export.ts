@@ -1,11 +1,10 @@
-import html2canvas from 'html2canvas';
-
 export interface ImageExportOptions {
   orderId?: string;
   shopifyOrderNumber?: string; // Shopify order number for filename
   targetSize?: number; // Target file size in MB
   minSize?: number; // Minimum file size in MB
   maxSize?: number; // Maximum file size in MB
+  pixelRatio?: number; // For high-DPI export (default: 3 for 300 DPI)
 }
 
 export interface ExportResult {
@@ -17,7 +16,6 @@ export interface ExportResult {
 
 /**
  * Converts an image to true black and white (no gradients) as specified
- * Enhanced for high-quality map tiles
  * White = land/text/icons, Black = water/engraved areas
  */
 function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
@@ -26,9 +24,9 @@ function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const data = imageData.data;
 
   // Enhanced threshold for high-quality map conversion
-  const threshold = 140; // Slightly higher for better map detail preservation
+  const threshold = 140;
   
-  console.log(`Converting ${canvas.width}x${canvas.height} high-quality image to true black/white`);
+  console.log(`Converting ${canvas.width}x${canvas.height} image to true black/white for engraving`);
   
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
@@ -42,31 +40,24 @@ function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
     // Calculate luminance for black/white decision
     const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
     
-    // Enhanced conversion logic for high-quality maps:
+    // Enhanced conversion logic for maps:
     let value: number;
-    
-    // Detect text and icon elements (should be white - not engraved)
-    const isTextOrIcon = (r > 200 && g > 200 && b > 200) || (r < 50 && g < 50 && b < 50);
     
     // Detect water areas (typically blue-ish in color maps)
     const isWater = (b > r + 20 && b > g + 20) || (r < 100 && g < 100 && b > 120);
     
-    // Detect roads and paths (typically gray or white lines)
-    const isRoadOrPath = Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r > 180;
+    // Detect text and icon elements (should be white - not engraved)
+    const isTextOrIcon = (r < 50 && g < 50 && b < 50) || (r > 200 && g > 200 && b > 200);
     
-    if (isTextOrIcon) {
-      // Text and icons should be white (not engraved)
-      value = luminance > 30 ? 255 : 0;
-    } else if (isWater) {
+    if (isWater) {
       // Water areas should be black (engraved)
       value = 0;
-    } else if (isRoadOrPath) {
-      // Roads and paths should be white (not engraved)
-      value = 255;
+    } else if (isTextOrIcon) {
+      // Text and icons should be black on white background
+      value = luminance < 128 ? 0 : 255;
     } else {
-      // For other map elements: use enhanced threshold
+      // For other map elements: use threshold
       // Land areas become white (not engraved)
-      // Dark features become black (engraved)
       value = luminance > threshold ? 255 : 0;
     }
     
@@ -78,223 +69,202 @@ function convertToBlackAndWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
   }
 
   ctx.putImageData(imageData, 0, 0);
-  console.log('High-quality black/white conversion completed');
+  console.log('Black/white conversion completed');
   return canvas;
 }
 
 /**
- * Adjusts JPEG quality to achieve target file size
- */
-async function adjustQualityForSize(
-  canvas: HTMLCanvasElement,
-  targetSizeMB: number,
-  minSizeMB: number,
-  maxSizeMB: number
-): Promise<{ blob: Blob; quality: number }> {
-  let quality = 0.95; // Start with high quality
-  let blob: Blob;
-  let attempts = 0;
-  const maxAttempts = 10;
-
-  do {
-    blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob(resolve as BlobCallback, 'image/jpeg', quality);
-    });
-
-    const sizeMB = blob!.size / (1024 * 1024);
-    
-    // If within target range, return
-    if (sizeMB >= minSizeMB && sizeMB <= maxSizeMB) {
-      return { blob: blob!, quality };
-    }
-
-    // Adjust quality based on current size
-    if (sizeMB > maxSizeMB) {
-      quality *= 0.8; // Reduce quality to decrease size
-    } else if (sizeMB < minSizeMB) {
-      quality = Math.min(1.0, quality * 1.2); // Increase quality to increase size
-    }
-
-    attempts++;
-  } while (attempts < maxAttempts && quality > 0.1 && quality <= 1.0);
-
-  return { blob: blob!, quality };
-}
-
-/**
- * Captures and exports the map preview as a high-quality JPEG for professional engraving
- * Follows exact specifications: 300 DPI, 8-30MB, true black/white
+ * Exports the OpenLayers map using the official OpenLayers approach
+ * Based on: https://openlayers.org/en/latest/examples/export-map.html
  */
 export async function exportMapImage(
-  element: HTMLElement,
+  mapElement: HTMLElement,
   options: ImageExportOptions = {}
 ): Promise<ExportResult> {
   const {
     orderId = `Order${Date.now()}`,
     shopifyOrderNumber,
-    targetSize = 15, // Target 15MB
-    minSize = 8,     // Minimum 8MB as specified
-    maxSize = 30     // Maximum 30MB as specified
+    targetSize = 15,
+    minSize = 8,
+    maxSize = 30,
+    pixelRatio = 3 // 3x for 300 DPI quality
   } = options;
 
-  try {
-    // Wait for map tiles to fully load
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Increased wait for tile loading
-
-    // Calculate scale for exactly 300 DPI output (as specified)
-    const targetDPI = 300;
-    const screenDPI = 96;
-    const scale = targetDPI / screenDPI; // 3.125x scale factor
-    
-    console.log(`Generating ultra-high quality image with ${scale}x scale factor for professional print quality`);
-    
-    // Get the actual element dimensions
-    const elementRect = element.getBoundingClientRect();
-    const actualWidth = Math.ceil(elementRect.width);
-    const actualHeight = Math.ceil(elementRect.height);
-    
-    console.log(`Element dimensions: ${actualWidth}x${actualHeight}px, Output: ${Math.ceil(actualWidth * scale)}x${Math.ceil(actualHeight * scale)}px`);
-    
-    // Enhanced html2canvas settings for maximum quality
-    const canvas = await html2canvas(element, {
-      scale: scale,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#ffffff',
-      logging: false, // Disable logging for cleaner output
-      width: actualWidth,
-      height: actualHeight,
-      removeContainer: true,
-      imageTimeout: 60000, // Increased timeout for high-quality tile loading
-      foreignObjectRendering: false, // Better compatibility with map tiles
-      // Enhanced quality settings
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: actualWidth,
-      windowHeight: actualHeight,
-      // Force high-quality rendering
-      proxy: undefined,
-      ignoreElements: (element): boolean => {
-        // Skip problematic elements during render
-        const hasControlClass = element.classList.contains('ol-control') || 
-               element.classList.contains('ol-attribution');
-        const hasZoomTestId = element.hasAttribute('data-testid') && 
-               (element.getAttribute('data-testid')?.includes('zoom') ?? false);
-        return hasControlClass || hasZoomTestId;
-      },
-      onclone: (clonedDoc) => {
-        // Force high-DPI rendering on cloned document
-        const style = clonedDoc.createElement('style');
-        style.textContent = `
-          * {
-            image-rendering: -webkit-optimize-contrast !important;
-            image-rendering: high-quality !important;
-            image-rendering: crisp-edges !important;
-            -webkit-font-smoothing: antialiased !important;
-            -moz-osx-font-smoothing: grayscale !important;
-            text-rendering: optimizeLegibility !important;
-          }
-          canvas {
-            image-rendering: -webkit-optimize-contrast !important;
-            image-rendering: high-quality !important;
-          }
-          .ol-layer canvas {
-            image-rendering: pixelated !important;
-          }
-        `;
-        clonedDoc.head.appendChild(style);
-        
-        // Clean up the cloned document for export
-        const clonedElement = clonedDoc.body;
-        
-        // Remove zoom controls and interactive UI elements
-        const uiElements = clonedElement.querySelectorAll(
-          '[data-testid*="zoom"], .absolute.top-4.right-4, .cursor-se-resize, .hover\\:bg-black\\/10, [data-testid*="resize"]'
-        );
-        uiElements.forEach(el => el.remove());
-        
-        // Remove overlay elements but keep location info
-        const overlays = clonedElement.querySelectorAll('.absolute.top-4.left-4, .absolute.bottom-2.left-2');
-        overlays.forEach(el => {
-          if (el.textContent?.includes('Zoom:')) {
-            el.remove();
-          }
-        });
-        
-        // Optimize text elements for engraving (black text on white background)
-        const textElements = clonedElement.querySelectorAll('[data-testid*="draggable-text"]');
-        textElements.forEach(el => {
-          const htmlEl = el as HTMLElement;
-          htmlEl.style.color = '#000000'; // Black text
-          htmlEl.style.fontWeight = 'bold';
-          htmlEl.style.textShadow = 'none'; // Remove shadows for clean engraving
-          htmlEl.style.letterSpacing = '0.5px';
-        });
-        
-        // Optimize icons for engraving (black icons on white background)
-        const iconElements = clonedElement.querySelectorAll('[data-testid*="draggable-icon"] svg, [data-testid*="draggable-compass"] svg');
-        iconElements.forEach(el => {
-          const htmlEl = el as HTMLElement;
-          htmlEl.style.color = '#000000'; // Black icons
-          htmlEl.style.fill = '#000000';
-          htmlEl.style.stroke = '#000000';
-          htmlEl.style.strokeWidth = '1.5px';
-          htmlEl.style.filter = 'none'; // Remove filters for clean engraving
-        });
-        
-        // Ensure map renders at high quality
-        const mapElements = clonedElement.querySelectorAll('.ol-layer, canvas');
-        mapElements.forEach(el => {
-          const htmlEl = el as HTMLElement;
-          htmlEl.style.imageRendering = 'high-quality';
-        });
+  return new Promise((resolve, reject) => {
+    try {
+      // Find the OpenLayers map instance
+      const mapDiv = mapElement.querySelector('.ol-viewport') || mapElement;
+      
+      if (!mapDiv) {
+        reject(new Error('OpenLayers map not found. Please make sure the map is loaded.'));
+        return;
       }
-    });
 
-    console.log(`Canvas generated: ${canvas.width}x${canvas.height} pixels at 300 DPI`);
+      console.log(`Starting high-quality map export at ${pixelRatio}x resolution for 300 DPI output`);
 
-    // Convert to true black and white (as specified: no gradients)
-    const bwCanvas = convertToBlackAndWhite(canvas);
+      // Use the OpenLayers rendercomplete event for proper export
+      const mapInstance = (mapDiv as any).__ol_map__ || (window as any).olMap;
+      
+      if (!mapInstance) {
+        reject(new Error('OpenLayers map instance not found.'));
+        return;
+      }
 
-    // Generate high-quality JPEG within specified size range (8-30MB)
-    const { blob, quality } = await adjustQualityForSize(
-      bwCanvas,
-      targetSize,
-      minSize,
-      maxSize
-    );
-    
-    console.log(`JPEG quality used: ${(quality * 100).toFixed(1)}%`);
+      // Wait for all tiles to load, then export
+      mapInstance.once('rendercomplete', function () {
+        try {
+          console.log('Map render complete, starting canvas export...');
+          
+          // Get the map size
+          const size = mapInstance.getSize();
+          if (!size) {
+            reject(new Error('Could not get map size.'));
+            return;
+          }
 
-    // Generate filename with Shopify order number (as specified)
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    let filename: string;
-    
-    if (shopifyOrderNumber) {
-      // Use Shopify order number format: Order12345_Map.jpeg
-      filename = `${shopifyOrderNumber}_Map.jpeg`;
-    } else {
-      // Fallback format with timestamp
-      filename = `${orderId}_Map_${timestamp}.jpeg`;
+          // Create high-resolution canvas
+          const exportCanvas = document.createElement('canvas');
+          exportCanvas.width = size[0] * pixelRatio;
+          exportCanvas.height = size[1] * pixelRatio;
+          
+          console.log(`Export canvas: ${exportCanvas.width}x${exportCanvas.height} pixels`);
+
+          const exportContext = exportCanvas.getContext('2d');
+          if (!exportContext) {
+            reject(new Error('Could not create canvas context.'));
+            return;
+          }
+
+          // Scale the context for high DPI
+          exportContext.scale(pixelRatio, pixelRatio);
+          
+          // Set white background for engraving
+          exportContext.fillStyle = '#ffffff';
+          exportContext.fillRect(0, 0, size[0], size[1]);
+
+          // Find all canvas elements in the map and combine them
+          const canvases = mapDiv.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
+          
+          console.log(`Found ${canvases.length} map canvas layers to combine`);
+
+          Array.prototype.forEach.call(canvases, function (canvas: HTMLCanvasElement) {
+            if (canvas.width > 0) {
+              const opacity = (canvas.parentNode as HTMLElement)?.style.opacity || canvas.style.opacity;
+              exportContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+              
+              let matrix;
+              const transform = canvas.style.transform;
+              
+              if (transform) {
+                // Get the transform parameters from the style's transform matrix
+                const matches = transform.match(/^matrix\(([^\(]*)\)$/);
+                if (matches) {
+                  matrix = matches[1].split(',').map(Number);
+                }
+              }
+              
+              if (!matrix) {
+                matrix = [
+                  parseFloat(canvas.style.width) / canvas.width || 1,
+                  0,
+                  0,
+                  parseFloat(canvas.style.height) / canvas.height || 1,
+                  0,
+                  0,
+                ];
+              }
+
+              // Apply the transform to the export map context
+              exportContext.setTransform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
+              
+              // Handle background color if present
+              const backgroundColor = (canvas.parentNode as HTMLElement)?.style.backgroundColor;
+              if (backgroundColor) {
+                exportContext.fillStyle = backgroundColor;
+                exportContext.fillRect(0, 0, canvas.width, canvas.height);
+              }
+              
+              // Draw the canvas
+              exportContext.drawImage(canvas, 0, 0);
+            }
+          });
+
+          // Reset context transformations
+          exportContext.globalAlpha = 1;
+          exportContext.setTransform(1, 0, 0, 1, 0, 0);
+
+          // Now add text and icon overlays from the DOM
+          const textElements = mapElement.querySelectorAll('[data-testid*="draggable-text"]');
+          const iconElements = mapElement.querySelectorAll('[data-testid*="draggable-icon"], [data-testid*="draggable-compass"]');
+          
+          console.log(`Adding ${textElements.length} text elements and ${iconElements.length} icons to export`);
+
+          // Add text elements
+          textElements.forEach((textEl: HTMLElement) => {
+            const rect = textEl.getBoundingClientRect();
+            const mapRect = mapElement.getBoundingClientRect();
+            
+            const x = (rect.left - mapRect.left) * pixelRatio;
+            const y = (rect.top - mapRect.top + rect.height / 2) * pixelRatio;
+            
+            exportContext.fillStyle = '#000000';
+            exportContext.font = `bold ${14 * pixelRatio}px Arial`;
+            exportContext.textAlign = 'center';
+            exportContext.fillText(textEl.textContent || '', x, y);
+          });
+
+          console.log('Converting to black and white for engraving...');
+
+          // Convert to black and white
+          const bwCanvas = convertToBlackAndWhite(exportCanvas);
+
+          // Create blob and handle file size
+          bwCanvas.toBlob(async (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create image blob.'));
+              return;
+            }
+
+            const sizeInMB = blob.size / (1024 * 1024);
+            
+            // Generate filename
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            let filename: string;
+            
+            if (shopifyOrderNumber) {
+              filename = `${shopifyOrderNumber}_Map.jpeg`;
+            } else {
+              filename = `${orderId}_Map_${timestamp}.jpeg`;
+            }
+
+            // Create data URL
+            const dataUrl = bwCanvas.toDataURL('image/jpeg', 0.95);
+
+            console.log(`Export complete: ${filename} (${sizeInMB.toFixed(1)}MB, ${bwCanvas.width}x${bwCanvas.height}px)`);
+
+            resolve({
+              blob,
+              dataUrl,
+              filename,
+              sizeInMB
+            });
+          }, 'image/jpeg', 0.95);
+
+        } catch (error) {
+          console.error('Error during canvas export:', error);
+          reject(new Error('Failed to export map canvas.'));
+        }
+      });
+
+      // Trigger the render
+      console.log('Triggering map render for export...');
+      mapInstance.renderSync();
+
+    } catch (error) {
+      console.error('Error setting up map export:', error);
+      reject(new Error('Failed to set up map export.'));
     }
-
-    // Create data URL for preview
-    const dataUrl = bwCanvas.toDataURL('image/jpeg', quality);
-
-    const sizeInMB = blob.size / (1024 * 1024);
-    
-    console.log(`Final image: ${filename} (${sizeInMB.toFixed(1)}MB, ${canvas.width}x${canvas.height}px, 300 DPI)`);
-
-    return {
-      blob,
-      dataUrl,
-      filename,
-      sizeInMB
-    };
-  } catch (error) {
-    console.error('Error exporting map image:', error);
-    throw new Error('Failed to export map image. Please make sure the map is fully loaded and try again.');
-  }
+  });
 }
 
 /**
