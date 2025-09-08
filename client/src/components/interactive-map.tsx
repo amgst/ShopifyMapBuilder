@@ -96,7 +96,7 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
   const olMapRef = useRef<Map | null>(null);
   const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const { state, updateLocation } = useMapBuilder();
-  const [currentTileSource, setCurrentTileSource] = useState<string>('voyager');
+  const [currentTileSource] = useState<string>('positron'); // Use Clean B&W as the best for engraving
 
   useEffect(() => {
     if (!mapRef.current || olMapRef.current) return;
@@ -223,81 +223,10 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
     }
   }, [state.location]);
 
-  // Function to switch tile sources
-  const switchTileSource = (newSource: string) => {
-    if (!olMapRef.current) return;
-    
-    setCurrentTileSource(newSource);
-    
-    const map = olMapRef.current;
-    const layers = map.getLayers();
-    const currentTileLayer = layers.item(0);
-    
-    // Remove current tile layer
-    layers.removeAt(0);
-    
-    // Add new tile layer
-    layers.insertAt(0, createHighQualityTileLayer(newSource));
-    
-    console.log(`Switched to ${newSource} tile source for better quality`);
-  };
+  // Automatically use the best tile source for engraving (no user selection needed)
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      {/* Quality Switcher */}
-      <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur rounded-lg shadow-md p-2 space-y-1">
-        <div className="text-xs font-semibold text-gray-700 mb-1">Map Quality</div>
-        <div className="flex flex-col gap-1">
-          <Button
-            variant={currentTileSource === 'voyager' ? "default" : "outline"}
-            size="sm"
-            className="text-xs px-2 py-1 h-auto"
-            onClick={() => switchTileSource('voyager')}
-          >
-            Voyager ⭐
-          </Button>
-          <Button
-            variant={currentTileSource === 'esri' ? "default" : "outline"}
-            size="sm"
-            className="text-xs px-2 py-1 h-auto"
-            onClick={() => switchTileSource('esri')}
-          >
-            ESRI HD
-          </Button>
-          <Button
-            variant={currentTileSource === 'positron' ? "default" : "outline"}
-            size="sm"
-            className="text-xs px-2 py-1 h-auto"
-            onClick={() => switchTileSource('positron')}
-          >
-            Clean B&W
-          </Button>
-          <Button
-            variant={currentTileSource === 'stamen' ? "default" : "outline"}
-            size="sm"
-            className="text-xs px-2 py-1 h-auto"
-            onClick={() => switchTileSource('stamen')}
-          >
-            Stamen B&W
-          </Button>
-          <Button
-            variant={currentTileSource === 'osm' ? "default" : "outline"}
-            size="sm"
-            className="text-xs px-2 py-1 h-auto"
-            onClick={() => switchTileSource('osm')}
-          >
-            Basic OSM
-          </Button>
-        </div>
-        <div className="text-xs text-gray-500 mt-1">
-          {currentTileSource === 'voyager' && 'Best overall quality'}
-          {currentTileSource === 'esri' && 'Google Maps-like'}
-          {currentTileSource === 'positron' && 'Clean for engraving'}
-          {currentTileSource === 'stamen' && 'True B&W for engraving'}
-          {currentTileSource === 'osm' && 'Basic quality'}
-        </div>
-      </div>
-
       {/* Map Container */}
       <div 
         ref={mapRef} 
