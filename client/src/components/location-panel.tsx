@@ -55,7 +55,7 @@ export default function LocationPanel() {
     if (!searchQuery.trim()) return;
     
     try {
-      const response = await fetch(`/api/search/locations?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`/api/utils?action=search-locations&q=${encodeURIComponent(searchQuery)}`);
       const results = await response.json();
       
       if (results.length > 0) {

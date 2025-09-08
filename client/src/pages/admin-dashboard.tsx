@@ -123,11 +123,11 @@ export default function AdminDashboard() {
         return;
       }
 
-      const response = await fetch('/api/admin/check-access', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch('/api/admin?action=check-access', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
       
       if (response.ok) {
         setIsAdmin(true);
@@ -153,12 +153,14 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
-      const [mapsRes, ordersRes, usersRes, statsRes] = await Promise.all([
-        fetch('/api/admin/maps'),
-        fetch('/api/admin/orders'),
-        fetch('/api/admin/users'),
-        fetch('/api/admin/stats')
+      const responses = await Promise.all([
+        fetch('/api/admin?action=maps'),
+        fetch('/api/admin?action=orders'),
+        fetch('/api/admin?action=users'),
+        fetch('/api/admin?action=stats')
       ]);
+
+      const [mapsRes, ordersRes, usersRes, statsRes] = responses;
 
       const [mapsData, ordersData, usersData, statsData] = await Promise.all([
         mapsRes.json(),
@@ -183,11 +185,11 @@ export default function AdminDashboard() {
     setAnalyticsError(null);
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/admin/store-analytics', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch('/api/admin?action=store-analytics', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
       
       if (response.ok) {
         const data = await response.json();
@@ -206,7 +208,7 @@ export default function AdminDashboard() {
 
   const downloadMap = async (mapId: string, fileName: string) => {
     try {
-      const response = await fetch(`/api/admin/download-map/${mapId}`);
+      const response = await fetch(`/api/admin?action=download-map&id=${mapId}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

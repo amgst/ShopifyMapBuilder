@@ -3,7 +3,7 @@ import { ShopifyConfig } from './shopify';
 
 export async function findShopifyProducts(config: ShopifyConfig) {
   try {
-    const response = await fetch('/api/shopify/find-products', {
+    const response = await fetch('/api/shopify?action=find-products', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

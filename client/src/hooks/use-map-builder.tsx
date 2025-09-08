@@ -329,7 +329,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     if (state.location) {
       const fetchInitialLocationData = async () => {
         try {
-          const response = await fetch(`/api/reverse-geocode?lat=${state.location!.lat}&lng=${state.location!.lng}`);
+          const response = await fetch(`/api/utils?action=reverse-geocode&lat=${state.location!.lat}&lng=${state.location!.lng}`);
           if (response.ok) {
             const locationData = await response.json();
             console.log('Initial location data received:', locationData);
@@ -356,7 +356,7 @@ export function MapBuilderProvider({ children }: { children: ReactNode }) {
     // Automatically fetch and set location text - handle async properly
     const fetchLocationData = async () => {
       try {
-        const response = await fetch(`/api/reverse-geocode?lat=${location.lat}&lng=${location.lng}`);
+        const response = await fetch(`/api/utils?action=reverse-geocode&lat=${location.lat}&lng=${location.lng}`);
         if (response.ok) {
           const locationData = await response.json();
           console.log('Location data received:', locationData);

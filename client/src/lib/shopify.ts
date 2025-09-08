@@ -188,7 +188,7 @@ export async function addToShopifyCart(config: ShopifyConfig, mapData: CustomMap
     
     console.log('Sending request to server proxy...');
     
-    const response = await fetch('/api/shopify/add-to-cart', {
+    const response = await fetch('/api/shopify?action=add-to-cart', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -279,7 +279,7 @@ export async function testShopifyConnection(config: ShopifyConfig) {
   }
   
   try {
-    const response = await fetch('/api/shopify/test-connection', {
+    const response = await fetch('/api/shopify?action=test-connection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -308,7 +308,7 @@ export async function fetchShopifyProductPrice(config: ShopifyConfig): Promise<{
   }
   
   try {
-    const response = await fetch('/api/shopify/test-connection', {
+    const response = await fetch('/api/shopify?action=test-connection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
