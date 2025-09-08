@@ -122,35 +122,32 @@ export async function exportMapImage(
             return;
           }
 
-          // Create high-resolution canvas
-          const exportCanvas = document.createElement('canvas');
-          exportCanvas.width = size[0] * pixelRatio;
-          exportCanvas.height = size[1] * pixelRatio;
+          // Create the composite canvas using official OpenLayers method
+          const mapCanvas = document.createElement('canvas');
+          mapCanvas.width = size[0];
+          mapCanvas.height = size[1];
+          const mapContext = mapCanvas.getContext('2d');
           
-          console.log(`Export canvas: ${exportCanvas.width}x${exportCanvas.height} pixels`);
-
-          const exportContext = exportCanvas.getContext('2d');
-          if (!exportContext) {
+          if (!mapContext) {
             reject(new Error('Could not create canvas context.'));
             return;
           }
 
-          // Scale the context for high DPI
-          exportContext.scale(pixelRatio, pixelRatio);
-          
-          // Set white background for engraving
-          exportContext.fillStyle = '#ffffff';
-          exportContext.fillRect(0, 0, size[0], size[1]);
+          // Set white background
+          mapContext.fillStyle = '#ffffff';
+          mapContext.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
 
-          // Find all canvas elements in the map and combine them
-          const canvases = mapDiv.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
+          // Get all map canvas layers using the official OpenLayers approach
+          const mapViewport = mapDiv.querySelector('.ol-viewport') as HTMLElement;
+          const canvases = mapViewport.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
           
           console.log(`Found ${canvases.length} map canvas layers to combine`);
 
+          // Composite all canvas layers (official OpenLayers export method)
           Array.prototype.forEach.call(canvases, function (canvas: HTMLCanvasElement) {
             if (canvas.width > 0) {
               const opacity = (canvas.parentNode as HTMLElement)?.style.opacity || canvas.style.opacity;
-              exportContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+              mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
               
               let matrix;
               const transform = canvas.style.transform;
@@ -175,29 +172,47 @@ export async function exportMapImage(
               }
 
               // Apply the transform to the export map context
-              exportContext.setTransform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
+              mapContext.setTransform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
               
               // Handle background color if present
               const backgroundColor = (canvas.parentNode as HTMLElement)?.style.backgroundColor;
               if (backgroundColor) {
-                exportContext.fillStyle = backgroundColor;
-                exportContext.fillRect(0, 0, canvas.width, canvas.height);
+                mapContext.fillStyle = backgroundColor;
+                mapContext.fillRect(0, 0, canvas.width, canvas.height);
               }
               
               // Draw the canvas
-              exportContext.drawImage(canvas, 0, 0);
+              mapContext.drawImage(canvas, 0, 0);
             }
           });
 
           // Reset context transformations
-          exportContext.globalAlpha = 1;
-          exportContext.setTransform(1, 0, 0, 1, 0, 0);
+          mapContext.globalAlpha = 1;
+          mapContext.setTransform(1, 0, 0, 1, 0, 0);
 
-          // Now add text and icon overlays from the DOM
+          // Now create high-resolution version
+          const exportCanvas = document.createElement('canvas');
+          exportCanvas.width = size[0] * pixelRatio;
+          exportCanvas.height = size[1] * pixelRatio;
+          
+          const exportContext = exportCanvas.getContext('2d');
+          if (!exportContext) {
+            reject(new Error('Could not create high-res canvas context.'));
+            return;
+          }
+
+          // Scale and draw the composite map
+          exportContext.scale(pixelRatio, pixelRatio);
+          exportContext.drawImage(mapCanvas, 0, 0);
+
+          // Add text and icon overlays from the DOM
           const textElements = mapElement.querySelectorAll('[data-testid*="draggable-text"]');
           const iconElements = mapElement.querySelectorAll('[data-testid*="draggable-icon"], [data-testid*="draggable-compass"]');
           
           console.log(`Adding ${textElements.length} text elements and ${iconElements.length} icons to export`);
+
+          // Reset scale for text rendering
+          exportContext.setTransform(1, 0, 0, 1, 0, 0);
 
           // Add text elements
           textElements.forEach((textEl: HTMLElement) => {
@@ -218,8 +233,14 @@ export async function exportMapImage(
           // Convert to black and white
           const bwCanvas = convertToBlackAndWhite(exportCanvas);
 
-          // Create data URL first (this method is more reliable)
+          // Create data URL and blob
           const dataUrl = bwCanvas.toDataURL('image/jpeg', 0.95);
+          
+          // Check if we have valid image data
+          if (dataUrl === 'data:,') {
+            reject(new Error('No image data captured. Canvas is empty.'));
+            return;
+          }
           
           // Convert data URL to blob
           fetch(dataUrl)
