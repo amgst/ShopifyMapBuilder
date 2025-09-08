@@ -427,12 +427,6 @@ export default function PreviewPanel() {
                   </div>
                   
                   
-                  {/* Location indicator */}
-                  {state.location && (
-                    <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 rounded text-xs font-medium">
-                      {state.location.searchQuery || 'Custom Location'}
-                    </div>
-                  )}
                   
                   {/* Custom texts */}
                   {state.customizations.texts.map((text) => (
@@ -540,19 +534,7 @@ export default function PreviewPanel() {
                     </Button>
                   </div>
 
-                  {/* Zoom Level Indicator */}
-                  {state.location && (
-                    <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 rounded text-xs font-medium">
-                      Zoom: {state.location.zoom.toFixed(1)}x
-                    </div>
-                  )}
 
-                  {/* Coordinates */}
-                  {state.location && (
-                    <div className="absolute bottom-2 left-2 bg-black text-white px-1 py-0.5 rounded text-xs font-mono">
-                      {state.location.lat.toFixed(4)}°N / {state.location.lng.toFixed(4)}°E
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
