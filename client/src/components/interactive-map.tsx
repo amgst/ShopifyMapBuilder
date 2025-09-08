@@ -180,7 +180,12 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
     // Note: Removed automatic view change handlers to prevent infinite update loops
     // The map will only update location when users explicitly click on it
 
+    // Store map reference for external access and export functionality
     olMapRef.current = map;
+    
+    // Make map instance accessible to export function
+    (window as any).olMap = map;
+    (mapRef.current as any).__ol_map__ = map;
 
     return () => {
       if (olMapRef.current) {
