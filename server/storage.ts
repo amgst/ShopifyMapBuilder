@@ -16,7 +16,7 @@ import {
   cloudBackups
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import pg from "pg";
 import { randomUUID } from "crypto";
 
@@ -119,7 +119,7 @@ export class PostgreSQLStorage implements IStorage {
 
   async deleteMapConfiguration(id: string): Promise<boolean> {
     const result = await this.db.delete(mapConfigurations).where(eq(mapConfigurations.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Shopify Order methods
