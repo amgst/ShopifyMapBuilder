@@ -58,79 +58,141 @@ export interface IStorage {
   getBackupsByMap(generatedMapId: string): Promise<CloudBackup[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private mapConfigurations: Map<string, MapConfiguration>;
+export class PostgreSQLStorage implements IStorage {
+  private db: ReturnType<typeof drizzle>;
 
   constructor() {
-    this.users = new Map();
-    this.mapConfigurations = new Map();
+    const pool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    this.db = drizzle(pool);
   }
 
+  // User methods
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await this.db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await this.db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUser(id: string, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await this.db.update(users).set({ ...userUpdate, updatedAt: new Date() }).where(eq(users.id, id)).returning();
+    return result[0];
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await this.db.select().from(users).where(eq(users.role, role));
   }
 
   // Map Configuration methods
   async getMapConfiguration(id: string): Promise<MapConfiguration | undefined> {
-    return this.mapConfigurations.get(id);
+    const result = await this.db.select().from(mapConfigurations).where(eq(mapConfigurations.id, id)).limit(1);
+    return result[0];
   }
 
   async getAllMapConfigurations(): Promise<MapConfiguration[]> {
-    return Array.from(this.mapConfigurations.values())
-      .sort((a, b) => {
-        const aTime = a.updatedAt || a.createdAt;
-        const bTime = b.updatedAt || b.createdAt;
-        return new Date(bTime!).getTime() - new Date(aTime!).getTime();
-      });
+    return await this.db.select().from(mapConfigurations).orderBy(desc(mapConfigurations.updatedAt));
+  }
+
+  async getMapConfigurationsByUser(userId: string): Promise<MapConfiguration[]> {
+    return await this.db.select().from(mapConfigurations).where(eq(mapConfigurations.userId, userId)).orderBy(desc(mapConfigurations.updatedAt));
   }
 
   async createMapConfiguration(insertConfig: InsertMapConfiguration): Promise<MapConfiguration> {
-    const id = randomUUID();
-    const now = new Date();
-    const config: MapConfiguration = {
-      ...insertConfig,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.mapConfigurations.set(id, config);
-    return config;
+    const result = await this.db.insert(mapConfigurations).values(insertConfig).returning();
+    return result[0];
   }
 
   async updateMapConfiguration(id: string, insertConfig: InsertMapConfiguration): Promise<MapConfiguration | undefined> {
-    const existing = this.mapConfigurations.get(id);
-    if (!existing) {
-      return undefined;
-    }
-
-    const updated: MapConfiguration = {
-      ...insertConfig,
-      id,
-      createdAt: existing.createdAt,
-      updatedAt: new Date(),
-    };
-    
-    this.mapConfigurations.set(id, updated);
-    return updated;
+    const result = await this.db.update(mapConfigurations).set({ ...insertConfig, updatedAt: new Date() }).where(eq(mapConfigurations.id, id)).returning();
+    return result[0];
   }
 
   async deleteMapConfiguration(id: string): Promise<boolean> {
-    return this.mapConfigurations.delete(id);
+    const result = await this.db.delete(mapConfigurations).where(eq(mapConfigurations.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Shopify Order methods
+  async getShopifyOrder(id: string): Promise<ShopifyOrder | undefined> {
+    const result = await this.db.select().from(shopifyOrders).where(eq(shopifyOrders.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getShopifyOrderByOrderId(shopifyOrderId: string): Promise<ShopifyOrder | undefined> {
+    const result = await this.db.select().from(shopifyOrders).where(eq(shopifyOrders.shopifyOrderId, shopifyOrderId)).limit(1);
+    return result[0];
+  }
+
+  async createShopifyOrder(order: InsertShopifyOrder): Promise<ShopifyOrder> {
+    const result = await this.db.insert(shopifyOrders).values(order).returning();
+    return result[0];
+  }
+
+  async updateShopifyOrder(id: string, orderUpdate: Partial<InsertShopifyOrder>): Promise<ShopifyOrder | undefined> {
+    const result = await this.db.update(shopifyOrders).set({ ...orderUpdate, updatedAt: new Date() }).where(eq(shopifyOrders.id, id)).returning();
+    return result[0];
+  }
+
+  async getOrdersByUser(userId: string): Promise<ShopifyOrder[]> {
+    return await this.db.select().from(shopifyOrders).where(eq(shopifyOrders.userId, userId)).orderBy(desc(shopifyOrders.createdAt));
+  }
+
+  // Generated Map methods
+  async getGeneratedMap(id: string): Promise<GeneratedMap | undefined> {
+    const result = await this.db.select().from(generatedMaps).where(eq(generatedMaps.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createGeneratedMap(map: InsertGeneratedMap): Promise<GeneratedMap> {
+    const result = await this.db.insert(generatedMaps).values(map).returning();
+    return result[0];
+  }
+
+  async updateGeneratedMap(id: string, mapUpdate: Partial<InsertGeneratedMap>): Promise<GeneratedMap | undefined> {
+    const result = await this.db.update(generatedMaps).set({ ...mapUpdate, updatedAt: new Date() }).where(eq(generatedMaps.id, id)).returning();
+    return result[0];
+  }
+
+  async getGeneratedMapsByUser(userId: string): Promise<GeneratedMap[]> {
+    return await this.db.select().from(generatedMaps).where(eq(generatedMaps.userId, userId)).orderBy(desc(generatedMaps.createdAt));
+  }
+
+  async getGeneratedMapsByOrder(shopifyOrderId: string): Promise<GeneratedMap[]> {
+    return await this.db.select().from(generatedMaps).where(eq(generatedMaps.shopifyOrderId, shopifyOrderId)).orderBy(desc(generatedMaps.createdAt));
+  }
+
+  async getAllGeneratedMaps(): Promise<GeneratedMap[]> {
+    return await this.db.select().from(generatedMaps).orderBy(desc(generatedMaps.createdAt));
+  }
+
+  async incrementDownloadCount(id: string): Promise<void> {
+    await this.db.update(generatedMaps).set({ downloadCount: sql`${generatedMaps.downloadCount} + 1`, updatedAt: new Date() }).where(eq(generatedMaps.id, id));
+  }
+
+  // Cloud Backup methods
+  async createCloudBackup(backup: InsertCloudBackup): Promise<CloudBackup> {
+    const result = await this.db.insert(cloudBackups).values(backup).returning();
+    return result[0];
+  }
+
+  async updateCloudBackup(id: string, backupUpdate: Partial<InsertCloudBackup>): Promise<CloudBackup | undefined> {
+    const result = await this.db.update(cloudBackups).set({ ...backupUpdate, updatedAt: new Date() }).where(eq(cloudBackups.id, id)).returning();
+    return result[0];
+  }
+
+  async getBackupsByMap(generatedMapId: string): Promise<CloudBackup[]> {
+    return await this.db.select().from(cloudBackups).where(eq(cloudBackups.generatedMapId, generatedMapId)).orderBy(desc(cloudBackups.createdAt));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new PostgreSQLStorage();
