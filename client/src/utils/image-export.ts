@@ -183,9 +183,9 @@ export async function exportMapImage(
             return;
           }
 
-          // Scale and draw the composite map
-          exportContext.scale(pixelRatio, pixelRatio);
-          exportContext.drawImage(mapCanvas, 0, 0);
+          // Scale and draw the composite map - fix the scaling issue
+          exportContext.drawImage(mapCanvas, 0, 0, mapCanvas.width, mapCanvas.height, 0, 0, size[0] * pixelRatio, size[1] * pixelRatio);
+          console.log(`Scaled map canvas from ${mapCanvas.width}x${mapCanvas.height} to ${size[0] * pixelRatio}x${size[1] * pixelRatio}`);
 
           // Add text and icon overlays from the DOM
           const textElements = mapElement.querySelectorAll('[data-testid*="draggable-text"]');
