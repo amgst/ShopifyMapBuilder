@@ -30,7 +30,7 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
       transition: 0,
       tilePixelRatio: window.devicePixelRatio || 1,
       // Enable canvas export
-      tileLoadFunction: function(tile, src) {
+      tileLoadFunction: function(tile: any, src: string) {
         const img = tile.getImage() as HTMLImageElement;
         img.crossOrigin = 'anonymous';
         img.src = src;
@@ -60,7 +60,7 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
       transition: 0,
       tilePixelRatio: window.devicePixelRatio || 1,
       // Enable canvas export
-      tileLoadFunction: function(tile, src) {
+      tileLoadFunction: function(tile: any, src: string) {
         const img = tile.getImage() as HTMLImageElement;
         img.crossOrigin = 'anonymous';
         img.src = src;
@@ -75,7 +75,7 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
       crossOrigin: 'anonymous',
       transition: 0,
       // Enable canvas export
-      tileLoadFunction: function(tile, src) {
+      tileLoadFunction: function(tile: any, src: string) {
         const img = tile.getImage() as HTMLImageElement;
         img.crossOrigin = 'anonymous';
         img.src = src;
@@ -163,7 +163,8 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
     });
 
     // Debug: Log any tile loading errors
-    map.getLayers().getArray()[0].getSource()?.on('tileloaderror', (event) => {
+    const firstLayer = map.getLayers().getArray()[0] as any;
+    firstLayer.getSource()?.on('tileloaderror', (event: any) => {
       console.warn('Tile loading error:', event);
     });
 

@@ -31,10 +31,10 @@ const MAP_STYLES = {
 
 const PRESET_SIZES = {
   'web-hd': { width: 1920, height: 1080, label: 'Web HD (1920×1080)' },
-  'print-letter': { width: 2550, height: 3300, label: 'Letter Print (8.5×11\")' },
+  'print-letter': { width: 2550, height: 3300, label: 'Letter Print (8.5×11")' },
   'print-a4': { width: 2480, height: 3508, label: 'A4 Print (210×297mm)' },
-  'poster-small': { width: 3600, height: 2400, label: 'Small Poster (12×8\")' },
-  'poster-large': { width: 4800, height: 3200, label: 'Large Poster (16×10.7\")' },
+  'poster-small': { width: 3600, height: 2400, label: 'Small Poster (12×8")' },
+  'poster-large': { width: 4800, height: 3200, label: 'Large Poster (16×10.7")' },
   'custom': { width: 1280, height: 1280, label: 'Custom Size' }
 };
 
@@ -67,9 +67,9 @@ export default function HighResMapGenerator() {
   const generateHighResMap = async (type: 'download' | 'poster') => {
     if (!state.location) {
       toast({
-        title: \"No Location Selected\",
-        description: \"Please select a location on the map first.\",
-        variant: \"destructive\"
+        title: "No Location Selected",
+        description: "Please select a location on the map first.",
+        variant: "destructive"
       });
       return;
     }
@@ -126,16 +126,16 @@ export default function HighResMapGenerator() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: \"High-Resolution Map Generated!\",
+        title: "High-Resolution Map Generated!",
         description: `Downloaded ${filename} (${sizeMB}MB)`
       });
 
     } catch (error) {
       console.error('Error generating high-res map:', error);
       toast({
-        title: \"Generation Failed\",
-        description: error instanceof Error ? error.message : \"Failed to generate map\",
-        variant: \"destructive\"
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate map",
+        variant: "destructive"
       });
     } finally {
       setIsGenerating(false);
@@ -145,9 +145,9 @@ export default function HighResMapGenerator() {
   const generateWithBoundingBox = async () => {
     if (!state.location) {
       toast({
-        title: \"No Location Selected\",
-        description: \"Please select a location on the map first.\",
-        variant: \"destructive\"
+        title: "No Location Selected",
+        description: "Please select a location on the map first.",
+        variant: "destructive"
       });
       return;
     }
@@ -204,16 +204,16 @@ export default function HighResMapGenerator() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: \"Bounding Box Map Generated!\",
+        title: "Bounding Box Map Generated!",
         description: `Downloaded ${filename} (${sizeMB}MB)`
       });
 
     } catch (error) {
       console.error('Error generating bbox map:', error);
       toast({
-        title: \"Generation Failed\",
-        description: \"Failed to generate bounding box map\",
-        variant: \"destructive\"
+        title: "Generation Failed",
+        description: "Failed to generate bounding box map",
+        variant: "destructive"
       });
     } finally {
       setIsGenerating(false);
@@ -221,10 +221,10 @@ export default function HighResMapGenerator() {
   };
 
   return (
-    <Card className=\"w-full max-w-2xl\">
+    <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle className=\"flex items-center gap-2\">
-          <Image className=\"h-5 w-5\" />
+        <CardTitle className="flex items-center gap-2">
+          <Image className="h-5 w-5" />
           Professional High-Resolution Maps
         </CardTitle>
         <CardDescription>
@@ -232,25 +232,25 @@ export default function HighResMapGenerator() {
           Perfect for printing, presentations, and professional use.
         </CardDescription>
       </CardHeader>
-      <CardContent className=\"space-y-6\">
+      <CardContent className="space-y-6">
         {/* Current Location Display */}
         {state.location && (
-          <div className=\"bg-muted/50 rounded-lg p-4\">
-            <div className=\"flex items-center gap-2 mb-2\">
-              <MapPin className=\"h-4 w-4\" />
-              <span className=\"font-medium\">Current Location</span>
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4" />
+              <span className="font-medium">Current Location</span>
             </div>
-            <p className=\"text-sm text-muted-foreground\">
+            <p className="text-sm text-muted-foreground">
               {state.location.searchQuery || 'Custom Location'}
             </p>
-            <p className=\"text-xs text-muted-foreground\">
+            <p className="text-xs text-muted-foreground">
               {state.location.lat.toFixed(4)}°N, {state.location.lng.toFixed(4)}°E • Zoom: {state.location.zoom}
             </p>
           </div>
         )}
 
         {/* Preset Sizes */}
-        <div className=\"space-y-2\">
+        <div className="space-y-2">
           <Label>Size Presets</Label>
           <Select value={selectedPreset} onValueChange={updatePreset}>
             <SelectTrigger>
@@ -268,23 +268,23 @@ export default function HighResMapGenerator() {
 
         {/* Custom Dimensions */}
         {selectedPreset === 'custom' && (
-          <div className=\"grid grid-cols-2 gap-4\">
-            <div className=\"space-y-2\">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Width (px)</Label>
               <Input
-                type=\"number\"
-                min=\"100\"
-                max=\"1280\"
+                type="number"
+                min="100"
+                max="1280"
                 value={options.width}
                 onChange={(e) => setOptions(prev => ({ ...prev, width: parseInt(e.target.value) || 1280 }))}
               />
             </div>
-            <div className=\"space-y-2\">
+            <div className="space-y-2">
               <Label>Height (px)</Label>
               <Input
-                type=\"number\"
-                min=\"100\"
-                max=\"1280\"
+                type="number"
+                min="100"
+                max="1280"
                 value={options.height}
                 onChange={(e) => setOptions(prev => ({ ...prev, height: parseInt(e.target.value) || 1280 }))}
               />
@@ -293,7 +293,7 @@ export default function HighResMapGenerator() {
         )}
 
         {/* Map Style */}
-        <div className=\"space-y-2\">
+        <div className="space-y-2">
           <Label>Map Style</Label>
           <Select value={options.style} onValueChange={(value) => setOptions(prev => ({ ...prev, style: value }))}>
             <SelectTrigger>
@@ -310,51 +310,51 @@ export default function HighResMapGenerator() {
         </div>
 
         {/* Format and Quality Options */}
-        <div className=\"grid grid-cols-2 gap-4\">
-          <div className=\"space-y-2\">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
             <Label>Format</Label>
             <Select value={options.format} onValueChange={(value: 'png' | 'jpg' | 'webp') => setOptions(prev => ({ ...prev, format: value }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value=\"png\">PNG (Lossless)</SelectItem>
-                <SelectItem value=\"jpg\">JPEG (Smaller)</SelectItem>
-                <SelectItem value=\"webp\">WebP (Modern)</SelectItem>
+                <SelectItem value="png">PNG (Lossless)</SelectItem>
+                <SelectItem value="jpg">JPEG (Smaller)</SelectItem>
+                <SelectItem value="webp">WebP (Modern)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className=\"space-y-2\">
+          <div className="space-y-2">
             <Label>Print DPI</Label>
             <Select value={options.dpi.toString()} onValueChange={(value) => setOptions(prev => ({ ...prev, dpi: parseInt(value) }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value=\"150\">150 DPI (Draft)</SelectItem>
-                <SelectItem value=\"300\">300 DPI (Standard)</SelectItem>
-                <SelectItem value=\"600\">600 DPI (High Quality)</SelectItem>
+                <SelectItem value="150">150 DPI (Draft)</SelectItem>
+                <SelectItem value="300">300 DPI (Standard)</SelectItem>
+                <SelectItem value="600">600 DPI (High Quality)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         {/* Retina Option */}
-        <div className=\"flex items-center space-x-2\">
+        <div className="flex items-center space-x-2">
           <Switch
-            id=\"retina\"
+            id="retina"
             checked={options.retina}
             onCheckedChange={(checked) => setOptions(prev => ({ ...prev, retina: checked }))}
           />
-          <Label htmlFor=\"retina\">Retina Quality (2x pixels)</Label>
+          <Label htmlFor="retina">Retina Quality (2x pixels)</Label>
         </div>
 
         {/* Image Preview Info */}
-        <div className=\"bg-blue-50 rounded-lg p-4 text-sm\">
-          <h4 className=\"font-medium mb-2\">Output Specifications:</h4>
-          <div className=\"space-y-1 text-muted-foreground\">
+        <div className="bg-blue-50 rounded-lg p-4 text-sm">
+          <h4 className="font-medium mb-2">Output Specifications:</h4>
+          <div className="space-y-1 text-muted-foreground">
             <p>• Dimensions: {options.width} × {options.height} pixels{options.retina ? ' (@2x)' : ''}</p>
-            <p>• Print Size: {(options.width / options.dpi).toFixed(1)}\" × {(options.height / options.dpi).toFixed(1)}\" at {options.dpi} DPI</p>
+            <p>• Print Size: {(options.width / options.dpi).toFixed(1)}" × {(options.height / options.dpi).toFixed(1)}" at {options.dpi} DPI</p>
             <p>• Format: {options.format.toUpperCase()}</p>
             <p>• Source: Mapbox Static Images API</p>
             <p>• Quality: Professional grade</p>
@@ -362,20 +362,20 @@ export default function HighResMapGenerator() {
         </div>
 
         {/* Generate Buttons */}
-        <div className=\"flex flex-col gap-3\">
+        <div className="flex flex-col gap-3">
           <Button 
             onClick={() => generateHighResMap('download')} 
             disabled={isGenerating || !state.location}
-            className=\"w-full\"
+            className="w-full"
           >
             {isGenerating ? (
               <>
-                <Loader2 className=\"h-4 w-4 mr-2 animate-spin\" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Generating High-Res Map...
               </>
             ) : (
               <>
-                <Download className=\"h-4 w-4 mr-2\" />
+                <Download className="h-4 w-4 mr-2" />
                 Generate & Download Map
               </>
             )}
@@ -384,27 +384,27 @@ export default function HighResMapGenerator() {
           <Button 
             onClick={() => generateHighResMap('poster')} 
             disabled={isGenerating || !state.location}
-            variant=\"outline\"
-            className=\"w-full\"
+            variant="outline"
+            className="w-full"
           >
-            <Image className=\"h-4 w-4 mr-2\" />
+            <Image className="h-4 w-4 mr-2" />
             Generate Poster Quality
           </Button>
           
           <Button 
             onClick={generateWithBoundingBox} 
             disabled={isGenerating || !state.location}
-            variant=\"outline\"
-            className=\"w-full\"
+            variant="outline"
+            className="w-full"
           >
-            <MapPin className=\"h-4 w-4 mr-2\" />
+            <MapPin className="h-4 w-4 mr-2" />
             Generate with Auto-Bounds
           </Button>
         </div>
 
         {!state.location && (
-          <div className=\"bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800\">
-            <p className=\"font-medium\">No Location Selected</p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+            <p className="font-medium">No Location Selected</p>
             <p>Please select a location on the map to enable high-resolution generation.</p>
           </div>
         )}
