@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import MapBuilder from "@/pages/map-builder";
 import ShopifyDebug from "@/pages/shopify-debug";
+import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
       <Route path="/" component={MapBuilder} />
       <Route path="/builder" component={MapBuilder} />
       <Route path="/debug" component={ShopifyDebug} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

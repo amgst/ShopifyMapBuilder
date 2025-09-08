@@ -382,6 +382,211 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin API Routes
+  app.get("/api/admin/check-access", async (req, res) => {
+    try {
+      // For demo purposes, we'll accept a test admin user
+      // In production, this would check actual session/authentication
+      const userId = req.headers['x-user-id'] as string || 'admin-user-id';
+      
+      // Create test admin user if needed
+      let user = await storage.getUserByUsername('admin');
+      if (!user) {
+        user = await storage.createUser({
+          username: "admin",
+          password: "admin123",
+          email: "admin@mapbuilder.com", 
+          role: "admin"
+        });
+      }
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      res.json({ success: true, user: { id: user.id, username: user.username, role: user.role } });
+    } catch (error) {
+      console.error('Admin access check failed:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/admin/stats", async (req, res) => {
+    try {
+      const [allMaps, allUsers] = await Promise.all([
+        storage.getAllGeneratedMaps(),
+        storage.getUsersByRole('customer')
+      ]);
+
+      const totalDownloads = allMaps.reduce((sum, map) => sum + (map.downloadCount || 0), 0);
+
+      const stats = {
+        totalUsers: allUsers.length + 1, // +1 for admin
+        totalMaps: allMaps.length,
+        totalOrders: 0, // We'll implement this when we have orders
+        totalDownloads
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Failed to get admin stats:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/admin/maps", async (req, res) => {
+    try {
+      const allMaps = await storage.getAllGeneratedMaps();
+      
+      const enrichedMaps = await Promise.all(
+        allMaps.map(async (map) => {
+          const mapUser = await storage.getUser(map.userId);
+          return {
+            ...map,
+            userName: mapUser?.username || map.userId,
+            customerEmail: mapUser?.email
+          };
+        })
+      );
+
+      res.json(enrichedMaps);
+    } catch (error) {
+      console.error('Failed to get admin maps:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      const [customers, admins] = await Promise.all([
+        storage.getUsersByRole('customer'),
+        storage.getUsersByRole('admin')
+      ]);
+
+      const allUsers = [...customers, ...admins].map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        shopifyStoreUrl: user.shopifyStoreUrl,
+        isActive: user.isActive,
+        createdAt: user.createdAt
+      }));
+
+      res.json(allUsers);
+    } catch (error) {
+      console.error('Failed to get admin users:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/admin/orders", async (req, res) => {
+    try {
+      // For now, return empty array since we don't have orders yet
+      res.json([]);
+    } catch (error) {
+      console.error('Failed to get admin orders:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/admin/download-map/:id", async (req, res) => {
+    try {
+      const mapId = req.params.id;
+      if (!mapId) {
+        return res.status(400).json({ message: 'Map ID required' });
+      }
+
+      const generatedMap = await storage.getGeneratedMap(mapId);
+      if (!generatedMap) {
+        return res.status(404).json({ message: 'Map not found' });
+      }
+
+      const filePath = path.join(process.cwd(), generatedMap.filePath);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'File not found on disk' });
+      }
+
+      await storage.incrementDownloadCount(mapId);
+
+      res.setHeader('Content-Type', generatedMap.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${generatedMap.fileName}"`);
+
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+
+    } catch (error) {
+      console.error('Failed to download map:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.post("/api/test-admin", async (req, res) => {
+    try {
+      // Create test admin user
+      let adminUser;
+      try {
+        adminUser = await storage.getUserByUsername("admin");
+        if (!adminUser) {
+          adminUser = await storage.createUser({
+            username: "admin",
+            password: "admin123",
+            email: "admin@mapbuilder.com",
+            role: "admin"
+          });
+        }
+      } catch (e) {
+        adminUser = await storage.getUserByUsername("admin");
+      }
+
+      // Create test customer
+      let customerUser;
+      try {
+        customerUser = await storage.getUserByUsername("customer1");
+        if (!customerUser) {
+          customerUser = await storage.createUser({
+            username: "customer1", 
+            password: "customer123",
+            email: "customer@example.com",
+            role: "customer",
+            shopifyStoreUrl: "test-store.myshopify.com"
+          });
+        }
+      } catch (e) {
+        customerUser = await storage.getUserByUsername("customer1");
+      }
+
+      // Create test generated map
+      const testMap = await storage.createGeneratedMap({
+        userId: customerUser!.id,
+        fileName: "custom-map-paris.jpg",
+        filePath: "public/images/Order1757243418385_Map_2025-09-07T11-10-18-385Z.jpeg",
+        fileSize: 2048576,
+        mimeType: "image/jpeg",
+        downloadCount: 5,
+        isPublic: false,
+        generationMetadata: {
+          location: "Paris, France",
+          style: "vintage",
+          generatedAt: new Date().toISOString()
+        }
+      });
+
+      res.json({
+        success: true,
+        message: "Test data created successfully",
+        data: {
+          adminUserId: adminUser!.id,
+          customerUserId: customerUser!.id,
+          mapId: testMap.id
+        }
+      });
+    } catch (error) {
+      console.error('Failed to create test data:', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  });
+
   // High-Resolution Map Generation Routes
   // Generate high-resolution maps using Mapbox Static Images API
   app.post("/api/generate-high-res-map", generateHighResMapRoute);
