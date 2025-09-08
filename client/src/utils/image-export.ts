@@ -1,3 +1,5 @@
+import html2canvas from 'html2canvas';
+
 export interface ImageExportOptions {
   orderId?: string;
   shopifyOrderNumber?: string; // Shopify order number for filename
