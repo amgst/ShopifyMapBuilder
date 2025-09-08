@@ -284,19 +284,6 @@ export default function ShopifyDebugPage() {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Debug Output</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={results}
-              readOnly
-              className="h-96 font-mono text-sm"
-              placeholder="Debug output will appear here..."
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
