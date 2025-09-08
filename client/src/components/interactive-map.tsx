@@ -17,6 +17,80 @@ interface InteractiveMapProps {
   className?: string;
 }
 
+// High-quality tile sources for professional printing
+const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
+  // Option 1: CartoDB Voyager (High-quality, no token required)
+  const cartoDBVoyager = new TileLayer({
+    source: new XYZ({
+      url: 'https://{1-4}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      maxZoom: 20,
+      attributions: '© OpenStreetMap contributors, © CartoDB',
+      crossOrigin: 'anonymous',
+      // Enhanced tile loading for better quality
+      transition: 0,
+      tilePixelRatio: window.devicePixelRatio || 1
+    })
+  });
+  
+  // Option 2: ESRI World Street Map (Google Maps-like quality)
+  const esriStreetMap = new TileLayer({
+    source: new XYZ({
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      maxZoom: 19,
+      attributions: '© Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, © OpenStreetMap contributors, and the GIS User Community',
+      crossOrigin: 'anonymous',
+      transition: 0,
+      tilePixelRatio: window.devicePixelRatio || 1
+    })
+  });
+  
+  // Option 3: CartoDB Positron (Clean for engraving)
+  const cartoDBPositron = new TileLayer({
+    source: new XYZ({
+      url: 'https://{1-4}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      maxZoom: 20,
+      attributions: '© OpenStreetMap contributors, © CartoDB',
+      crossOrigin: 'anonymous',
+      transition: 0,
+      tilePixelRatio: window.devicePixelRatio || 1
+    })
+  });
+  
+  // Option 2: OpenStreetMap (fallback for immediate display)
+  const osmFallback = new TileLayer({
+    source: new OSM({
+      maxZoom: 19,
+      crossOrigin: 'anonymous',
+      transition: 0
+    })
+  });
+  
+  // Option 2b: Stamen Toner (black and white, perfect for engraving) - fallback
+  const stamenToner = new TileLayer({
+    source: new XYZ({
+      url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png',
+      maxZoom: 20,
+      attributions: '© Stadia Maps, © Stamen Design, © OpenMapTiles, © OpenStreetMap contributors',
+      crossOrigin: 'anonymous'
+    })
+  });
+  
+  // Return the selected tile source for testing different qualities
+  switch (sourceType) {
+    case 'esri':
+      return esriStreetMap;
+    case 'positron':
+      return cartoDBPositron;
+    case 'osm':
+      return osmFallback;
+    case 'stamen':
+      return stamenToner;
+    case 'voyager':
+    default:
+      return cartoDBVoyager;
+  }
+};
+
 export default function InteractiveMap({ className }: InteractiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const olMapRef = useRef<Map | null>(null);
@@ -46,83 +120,6 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
     });
     markerLayerRef.current = markerLayer;
 
-    // High-quality tile sources for professional printing
-    const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
-      // Option 1: CartoDB Voyager (High-quality, no token required)
-      const cartoDBVoyager = new TileLayer({
-        source: new XYZ({
-          url: 'https://{1-4}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-          maxZoom: 20,
-          attributions: '© OpenStreetMap contributors, © CartoDB',
-          crossOrigin: 'anonymous',
-          // Enhanced tile loading for better quality
-          transition: 0,
-          preload: 1,
-          tilePixelRatio: window.devicePixelRatio || 1
-        })
-      });
-      
-      // Option 2: ESRI World Street Map (Google Maps-like quality)
-      const esriStreetMap = new TileLayer({
-        source: new XYZ({
-          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-          maxZoom: 19,
-          attributions: '© Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, © OpenStreetMap contributors, and the GIS User Community',
-          crossOrigin: 'anonymous',
-          transition: 0,
-          preload: 1,
-          tilePixelRatio: window.devicePixelRatio || 1
-        })
-      });
-      
-      // Option 3: CartoDB Positron (Clean for engraving)
-      const cartoDBPositron = new TileLayer({
-        source: new XYZ({
-          url: 'https://{1-4}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          maxZoom: 20,
-          attributions: '© OpenStreetMap contributors, © CartoDB',
-          crossOrigin: 'anonymous',
-          transition: 0,
-          preload: 1,
-          tilePixelRatio: window.devicePixelRatio || 1
-        })
-      });
-      
-      // Option 2: OpenStreetMap (fallback for immediate display)
-      const osmFallback = new TileLayer({
-        source: new OSM({
-          maxZoom: 19,
-          crossOrigin: 'anonymous',
-          transition: 0,
-          preload: 1
-        })
-      });
-      
-      // Option 2b: Stamen Toner (black and white, perfect for engraving) - fallback
-      const stamenToner = new TileLayer({
-        source: new XYZ({
-          url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png',
-          maxZoom: 20,
-          attributions: '© Stadia Maps, © Stamen Design, © OpenMapTiles, © OpenStreetMap contributors',
-          crossOrigin: 'anonymous'
-        })
-      });
-      
-      // Return the selected tile source for testing different qualities
-      switch (sourceType) {
-        case 'esri':
-          return esriStreetMap;
-        case 'positron':
-          return cartoDBPositron;
-        case 'osm':
-          return osmFallback;
-        case 'stamen':
-          return stamenToner;
-        case 'voyager':
-        default:
-          return cartoDBVoyager;
-      }
-    };
 
     // Initialize the map with high-quality tiles
     console.log('Initializing OpenLayers map...');
