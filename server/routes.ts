@@ -384,19 +384,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin API Routes
   app.get("/api/admin/check-access", async (req, res) => {
-    const checkAccessHandler = await import('../api/admin/check-access');
-    return checkAccessHandler.default(req, res);
+    const adminHandler = await import('../api/admin');
+    req.query = { ...req.query, action: 'check-access' };
+    return adminHandler.default(req, res);
   });
 
   // Admin login route
   app.post("/api/admin/login", async (req, res) => {
-    const loginHandler = await import('../api/admin/login');
-    return loginHandler.default(req, res);
+    const adminHandler = await import('../api/admin');
+    req.query = { ...req.query, action: 'login' };
+    return adminHandler.default(req, res);
   });
 
   app.get("/api/admin/store-analytics", async (req, res) => {
-    const storeAnalyticsHandler = await import('../api/admin/store-analytics');
-    return storeAnalyticsHandler.handler(req, res);
+    const adminHandler = await import('../api/admin');
+    req.query = { ...req.query, action: 'store-analytics' };
+    return adminHandler.default(req, res);
   });
 
   app.get("/api/admin/stats", async (req, res) => {
@@ -704,6 +707,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error testing Shopify connection:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    }
+  });
+
+  // Get variant price
+  app.post("/api/shopify/get-variant-price", async (req, res) => {
+    try {
+      const { variantId } = req.body;
+      
+      if (!variantId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Variant ID is required'
+        });
+      }
+      
+      // Extract store config from environment or request
+      const storeName = process.env.SHOPIFY_STORE_NAME;
+      const storefrontAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+      
+      if (!storeName || !storefrontAccessToken) {
+        return res.status(500).json({
+          success: false,
+          error: 'Shopify configuration missing'
+        });
+      }
+      
+      const shopifyUrl = `https://${storeName}.myshopify.com/api/2024-10/graphql.json`;
+      
+      const query = `
+        query getVariantPrice($variantId: ID!) {
+          node(id: $variantId) {
+            ... on ProductVariant {
+              id
+              title
+              availableForSale
+              price {
+                amount
+                currencyCode
+              }
+              product {
+                id
+                title
+                handle
+              }
+            }
+          }
+        }
+      `;
+      
+      const response = await fetch(shopifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
+        },
+        body: JSON.stringify({ 
+          query, 
+          variables: { variantId } 
+        })
+      });
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          success: false,
+          error: `HTTP ${response.status}: ${response.statusText}`
+        });
+      }
+      
+      const data = await response.json();
+      
+      if (data.errors) {
+        return res.status(400).json({
+          success: false,
+          error: `GraphQL errors: ${data.errors.map((e: any) => e.message).join(', ')}`
+        });
+      }
+      
+      if (!data.data.node) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product variant not found'
+        });
+      }
+      
+      const variant = data.data.node;
+      
+      res.json({
+        success: true,
+        variant: {
+          id: variant.id,
+          title: variant.title,
+          price: {
+            amount: parseFloat(variant.price.amount),
+            currency: variant.price.currencyCode
+          },
+          product: {
+            title: variant.product.title,
+            handle: variant.product.handle
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching variant price:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'

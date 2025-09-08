@@ -65,8 +65,9 @@ export default function PreviewPanel() {
   const { toast } = useToast();
   const { isLoading, addToCart } = useShopify();
   
-  // Fetch actual Shopify product price
-  const { price: shopifyPrice, currency, loading: priceLoading, error: priceError } = useShopifyPricing(shopifyConfig);
+  // Fetch actual Shopify product price based on current size
+  const currentSize = state.productSettings?.size || 'standard';
+  const { price: shopifyPrice, currency, loading: priceLoading, error: priceError } = useShopifyPricing(shopifyConfig, currentSize);
   const [show3D, setShow3D] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;

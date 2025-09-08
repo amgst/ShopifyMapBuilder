@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { fetchShopifyProductPrice, ShopifyConfig } from '@/lib/shopify';
 
+// Size-specific variant IDs for different product sizes
+const VARIANT_IDS = {
+  compact: 'gid://shopify/ProductVariant/41068385009711', // 8" × 6" Compact
+  standard: 'gid://shopify/ProductVariant/41068385042479', // 12" × 8" Standard  
+  large: 'gid://shopify/ProductVariant/41068385075247' // 16" × 10" Large
+};
+
 interface ShopifyPricingState {
   price: number | null;
   currency: string | null;
@@ -8,7 +15,7 @@ interface ShopifyPricingState {
   error: string | null;
 }
 
-export function useShopifyPricing(config: ShopifyConfig) {
+export function useShopifyPricing(baseConfig: ShopifyConfig, size: string = 'standard') {
   const [state, setState] = useState<ShopifyPricingState>({
     price: null,
     currency: null,
@@ -20,6 +27,13 @@ export function useShopifyPricing(config: ShopifyConfig) {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
+      // Use size-specific variant ID
+      const variantId = VARIANT_IDS[size as keyof typeof VARIANT_IDS] || VARIANT_IDS.standard;
+      const config = {
+        ...baseConfig,
+        productVariantId: variantId
+      };
+      
       const result = await fetchShopifyProductPrice(config);
       
       if (result.success) {
@@ -49,7 +63,7 @@ export function useShopifyPricing(config: ShopifyConfig) {
 
   useEffect(() => {
     fetchPrice();
-  }, [config.productVariantId]); // Re-fetch when variant ID changes
+  }, [size]); // Re-fetch when size changes
 
   return {
     ...state,

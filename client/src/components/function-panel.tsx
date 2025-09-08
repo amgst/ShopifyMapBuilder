@@ -29,8 +29,9 @@ export default function FunctionPanel({ activeTab, sidebarExpanded }: FunctionPa
     productVariantId: 'gid://shopify/ProductVariant/41068385009711'
   };
   
-  // Fetch actual Shopify product price
-  const { price: shopifyPrice, currency, loading: priceLoading, error: priceError } = useShopifyPricing(shopifyConfig);
+  // Fetch actual Shopify product price based on current size
+  const currentSize = state.productSettings?.size || 'standard';
+  const { price: shopifyPrice, currency, loading: priceLoading, error: priceError } = useShopifyPricing(shopifyConfig, currentSize);
   
   const sizeOptions = [
     { id: "standard", label: '12" × 8" Standard' },

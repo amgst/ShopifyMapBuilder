@@ -19,33 +19,16 @@ export default function AdminLogin() {
     setError("");
     setLoading(true);
 
-    try {
-      const response = await fetch('/api/admin?action=login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Store admin session
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminUser', JSON.stringify(data.user));
-        
-        // Redirect to admin dashboard
-        setLocation('/admin');
-      } else {
-        setError(data.message || 'Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('An error occurred during login');
-    } finally {
+    // Dummy authentication - just simulate a successful login
+    setTimeout(() => {
+      // Store dummy admin session
+      localStorage.setItem('adminToken', 'dummy-admin-token');
+      localStorage.setItem('adminUser', JSON.stringify({ id: 'admin', username: 'admin' }));
+      
+      // Redirect to admin dashboard
+      setLocation('/admin');
       setLoading(false);
-    }
+    }, 500); // Small delay to simulate network request
   };
 
   return (

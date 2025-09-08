@@ -69,8 +69,8 @@ export default function StylePanel() {
   const [selectedSize, setSelectedSize] = useState(state.productSettings?.size || "standard");
   const [selectedMaterial, setSelectedMaterial] = useState(state.productSettings?.material || "oak");
   
-  // Fetch actual Shopify product price
-  const { price: shopifyPrice, currency, loading: priceLoading } = useShopifyPricing(shopifyConfig);
+  // Fetch actual Shopify product price based on selected size
+  const { price: shopifyPrice, currency, loading: priceLoading } = useShopifyPricing(shopifyConfig, selectedSize);
 
   const handleShapeChange = (shapeId: string) => {
     setSelectedShape(shapeId);

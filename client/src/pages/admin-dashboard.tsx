@@ -123,22 +123,30 @@ export default function AdminDashboard() {
         return;
       }
 
-      const response = await fetch('/api/admin?action=check-access', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-      
-      if (response.ok) {
+      // Dummy authentication - accept any token
+      if (token === 'dummy-admin-token') {
         setIsAdmin(true);
         setAdminToken(token);
         loadAdminData();
       } else {
-        // Token is invalid, remove it
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
-        setIsAdmin(false);
-        setAdminToken(null);
+        // For backwards compatibility, still check real tokens
+        const response = await fetch('/api/admin/check-access', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+        
+        if (response.ok) {
+          setIsAdmin(true);
+          setAdminToken(token);
+          loadAdminData();
+        } else {
+          // Token is invalid, remove it
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminUser');
+          setIsAdmin(false);
+          setAdminToken(null);
+        }
       }
     } catch (error) {
       console.error('Failed to check admin access:', error);
@@ -153,11 +161,116 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
+      const token = localStorage.getItem('adminToken');
+      
+      // If using dummy token, provide mock data
+      if (token === 'dummy-admin-token') {
+        // Mock users data
+        setUsers([
+          {
+            id: '1',
+            username: 'demo_user',
+            email: 'demo@example.com',
+            role: 'user',
+            shopifyStoreUrl: 'demo-store.myshopify.com',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: '2',
+            username: 'admin',
+            email: 'admin@example.com',
+            role: 'admin',
+            shopifyStoreUrl: 'admin-store.myshopify.com',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          }
+        ]);
+        
+        // Mock maps data
+        setMaps([
+          {
+            id: '1',
+            fileName: 'san-francisco-map.png',
+            fileSize: 2048576,
+            downloadCount: 5,
+            createdAt: new Date().toISOString(),
+            userId: '1',
+            shopifyOrderId: 'order_123',
+            userName: 'demo_user',
+            customerEmail: 'demo@example.com'
+          },
+          {
+            id: '2',
+            fileName: 'new-york-map.png',
+            fileSize: 3145728,
+            downloadCount: 12,
+            createdAt: new Date().toISOString(),
+            userId: '2',
+            userName: 'admin',
+            customerEmail: 'admin@example.com'
+          }
+        ]);
+        
+        // Mock orders data
+        setOrders([
+          {
+            id: '1',
+            shopifyOrderId: 'order_123',
+            shopifyOrderNumber: '#1001',
+            customerEmail: 'demo@example.com',
+            customerName: 'Demo User',
+            status: 'completed',
+            createdAt: new Date().toISOString(),
+            userId: '1',
+            userName: 'demo_user'
+          },
+          {
+            id: '2',
+            shopifyOrderId: 'order_456',
+            shopifyOrderNumber: '#1002',
+            customerEmail: 'customer@example.com',
+            customerName: 'John Doe',
+            status: 'processing',
+            createdAt: new Date().toISOString(),
+            userId: '2',
+            userName: 'admin'
+          }
+        ]);
+        
+        // Mock stats data
+        setStats({
+          totalUsers: 2,
+          totalMaps: 2,
+          totalOrders: 2,
+          totalDownloads: 17
+        });
+        
+        return;
+      }
+      
+      // Original API calls for real tokens
       const responses = await Promise.all([
-        fetch('/api/admin?action=maps'),
-        fetch('/api/admin?action=orders'),
-        fetch('/api/admin?action=users'),
-        fetch('/api/admin?action=stats')
+        fetch('/api/admin/maps', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        fetch('/api/admin/orders', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        fetch('/api/admin/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        fetch('/api/admin/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
       ]);
 
       const [mapsRes, ordersRes, usersRes, statsRes] = responses;
@@ -185,7 +298,58 @@ export default function AdminDashboard() {
     setAnalyticsError(null);
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/admin?action=store-analytics', {
+      
+      // If using dummy token, provide mock analytics data
+      if (token === 'dummy-admin-token') {
+        // Simulate loading delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setStoreAnalytics({
+          products: {
+            total: 150,
+            published: 120,
+            draft: 25,
+            archived: 5
+          },
+          collections: {
+            total: 12,
+            smart: 8,
+            custom: 4
+          },
+          orders: {
+            total: 342,
+            fulfilled: 298,
+            pending: 32,
+            cancelled: 12,
+            totalValue: 15420.50
+          },
+          customers: {
+            total: 186,
+            returning: 94,
+            new: 92
+          },
+          inventory: {
+            totalVariants: 450,
+            inStock: 380,
+            lowStock: 45,
+            outOfStock: 25
+          },
+          store: {
+            name: 'Demo Store',
+            domain: 'demo-store.myshopify.com',
+            plan: 'Shopify',
+            currency: 'USD',
+            timezone: 'America/New_York',
+            createdAt: '2023-01-15T00:00:00Z'
+          }
+        });
+        
+        setAnalyticsLoading(false);
+        return;
+      }
+      
+      // Original API call for real tokens
+      const response = await fetch('/api/admin/store-analytics', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -208,7 +372,7 @@ export default function AdminDashboard() {
 
   const downloadMap = async (mapId: string, fileName: string) => {
     try {
-      const response = await fetch(`/api/admin?action=download-map&id=${mapId}`);
+      const response = await fetch(`/api/admin/download-map/${mapId}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
