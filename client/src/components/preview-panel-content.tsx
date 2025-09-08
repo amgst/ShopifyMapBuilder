@@ -25,23 +25,25 @@ export default function PreviewPanelContent() {
   const handleSaveDesign = async () => {
     setIsExporting(true);
     try {
-      // Find the preview element using DOM query
-      const previewElement = document.querySelector('[data-testid="map-preview-area"]') as HTMLElement;
+      // Get the actual OpenLayers map instance
+      const mapInstance = (window as any).olMap;
       
-      if (!previewElement) {
-        throw new Error('Preview area not found. Please make sure the map is loaded.');
+      if (!mapInstance) {
+        throw new Error('Map not found. Please make sure the map is loaded.');
       }
 
       // Generate order ID (in real app, this would come from Shopify)
-      const orderId = `${Date.now()}`;
+      const orderId = `Order${Date.now()}`;
       
-      const result = await exportMapImage(previewElement, {
+      // Get map size for export
+      const mapSize = mapInstance.getSize() || [800, 600];
+      
+      const result = await exportMapImage(
+        mapInstance, 
+        mapSize,
         orderId,
-        targetSize: 15, // Target 15MB within 8-30MB range
-        minSize: 8,     // Minimum 8MB as specified
-        maxSize: 30,    // Maximum 30MB as specified
-        shopifyOrderNumber: `Order${orderId}` // Include Shopify order number format
-      });
+        `Order${orderId}`
+      );
 
       // Download the image
       downloadImage(result.blob, result.filename);
