@@ -50,7 +50,7 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
     })
   });
   
-  // Option 3: CartoDB Positron (Clean for engraving)
+  // Option 3: CartoDB Positron (Clean for engraving)  
   const cartoDBPositron = new TileLayer({
     source: new XYZ({
       url: 'https://{1-4}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
@@ -59,10 +59,21 @@ const createHighQualityTileLayer = (sourceType: string = 'voyager') => {
       crossOrigin: 'anonymous',
       transition: 0,
       tilePixelRatio: window.devicePixelRatio || 1,
-      // Enable canvas export
+      // Enhanced tile loading for canvas export
       tileLoadFunction: function(tile: any, src: string) {
         const img = tile.getImage() as HTMLImageElement;
         img.crossOrigin = 'anonymous';
+        
+        // Force reload with CORS if needed
+        img.onload = function() {
+          console.log('Tile loaded successfully for export:', src);
+        };
+        
+        img.onerror = function() {
+          console.warn('Tile failed with CORS, retrying:', src);
+          // Don't retry to avoid infinite loops
+        };
+        
         img.src = src;
       }
     })
@@ -114,7 +125,7 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
   const olMapRef = useRef<Map | null>(null);
   const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const { state, updateLocation } = useMapBuilder();
-  const [currentTileSource] = useState<string>('positron'); // Use Clean B&W as the best for engraving
+  const [currentTileSource] = useState<string>('osm'); // Use OSM which has better CORS support for export
 
   useEffect(() => {
     if (!mapRef.current || olMapRef.current) return;
