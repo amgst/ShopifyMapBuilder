@@ -228,34 +228,41 @@ export async function exportMapImage(
           
           console.log(`Data URL length: ${dataUrl.length} characters`);
           
-          // Convert using canvas.toBlob for better handling
-          bwCanvas.toBlob((blob) => {
-            if (!blob) {
-              reject(new Error('Failed to create blob from canvas.'));
-              return;
-            }
-            
-            const sizeInMB = blob.size / (1024 * 1024);
-            
-            // Generate filename
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            let filename: string;
-            
-            if (shopifyOrderNumber) {
-              filename = `${shopifyOrderNumber}_Map.jpeg`;
-            } else {
-              filename = `${orderId}_Map_${timestamp}.jpeg`;
-            }
+          // Convert data URL to blob manually
+          console.log('Converting data URL to blob...');
+          const byteString = atob(dataUrl.split(',')[1]);
+          const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+          
+          const arrayBuffer = new ArrayBuffer(byteString.length);
+          const uint8Array = new Uint8Array(arrayBuffer);
+          
+          for (let i = 0; i < byteString.length; i++) {
+            uint8Array[i] = byteString.charCodeAt(i);
+          }
+          
+          const blob = new Blob([arrayBuffer], { type: mimeString });
+          const sizeInMB = blob.size / (1024 * 1024);
+          
+          console.log(`Blob created: ${blob.size} bytes (${sizeInMB.toFixed(1)}MB)`);
+          
+          // Generate filename
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          let filename: string;
+          
+          if (shopifyOrderNumber) {
+            filename = `${shopifyOrderNumber}_Map.jpeg`;
+          } else {
+            filename = `${orderId}_Map_${timestamp}.jpeg`;
+          }
 
-            console.log(`Export complete: ${filename} (${sizeInMB.toFixed(1)}MB, ${bwCanvas.width}x${bwCanvas.height}px)`);
+          console.log(`Export complete: ${filename} (${sizeInMB.toFixed(1)}MB, ${bwCanvas.width}x${bwCanvas.height}px)`);
 
-            resolve({
-              blob,
-              dataUrl,
-              filename,
-              sizeInMB
-            });
-          }, 'image/jpeg', 0.85);
+          resolve({
+            blob,
+            dataUrl,
+            filename,
+            sizeInMB
+          });
 
         } catch (error) {
           console.error('Error during canvas export:', error);
