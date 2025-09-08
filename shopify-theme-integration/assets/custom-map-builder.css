@@ -36,10 +36,10 @@ Add this to your theme's assets folder
 .map-builder-widget {
   position: relative;
   background: white;
-  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  margin: 20px 0;
+  margin: 0;
+  width: 100%;
+  max-width: none;
 }
 
 .map-builder-widget iframe {
@@ -111,20 +111,24 @@ Add this to your theme's assets folder
 
 /* Section Styles */
 .map-builder-section {
-  padding: 60px 0;
+  padding: 0;
+  width: 100%;
+  max-width: none;
 }
 
 .map-builder-section .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
 }
 
 .map-builder-heading {
   text-align: center;
   font-size: 2.5rem;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin: 20px 0;
+  padding: 0 20px;
   color: #333;
 }
 
@@ -133,17 +137,20 @@ Add this to your theme's assets folder
   font-size: 1.1rem;
   color: #666;
   max-width: 600px;
-  margin: 0 auto 40px;
+  margin: 0 auto 30px;
+  padding: 0 20px;
   line-height: 1.6;
 }
 
 /* Product Page Integration */
 .product-map-builder {
-  margin: 40px 0;
+  margin: 0;
+  width: 100%;
 }
 
 .product-map-builder .map-builder-widget {
   margin: 0;
+  width: 100%;
 }
 
 /* Success Message */
@@ -177,15 +184,22 @@ Add this to your theme's assets folder
 /* Responsive Design */
 @media (max-width: 768px) {
   .map-builder-section {
-    padding: 40px 0;
+    padding: 0;
+    width: 100%;
   }
   
   .map-builder-heading {
     font-size: 2rem;
+    padding: 0 15px;
+  }
+  
+  .map-builder-description {
+    padding: 0 15px;
   }
   
   .map-builder-widget iframe {
     min-height: 600px;
+    width: 100%;
   }
   
   .map-builder-notification {
@@ -204,24 +218,44 @@ Add this to your theme's assets folder
 @media (max-width: 480px) {
   .map-builder-widget iframe {
     min-height: 500px;
+    width: 100%;
   }
   
   .map-builder-heading {
     font-size: 1.8rem;
   }
   
-  .map-builder-section .container {
-    padding: 0 15px;
+  .map-builder-section,
+  .map-builder-widget,
+  .map-builder-container {
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }
 
 /* Theme-specific overrides */
 .shopify-section .map-builder-widget {
   margin: 0;
+  width: 100%;
+  max-width: none;
 }
 
 .shopify-section .map-builder-section {
-  padding: 40px 0;
+  padding: 0;
+  width: 100%;
+  max-width: none;
+}
+
+/* Remove any container constraints */
+.map-builder-section,
+.map-builder-widget,
+.map-builder-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Loading placeholder specific styles */

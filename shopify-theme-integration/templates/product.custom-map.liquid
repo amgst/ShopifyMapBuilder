@@ -4,36 +4,35 @@ File: templates/product.custom-map.liquid
 {% endcomment %}
 
 <div class="product-custom-map">
-  <div class="container">
-    <div class="product-header">
-      <h1 class="product-title">{{ product.title }}</h1>
-      {% if product.description != blank %}
-        <div class="product-description">
-          {{ product.description }}
-        </div>
-      {% endif %}
-    </div>
-
-    <!-- Map Builder Integration -->
-    <div class="map-builder-container">
-      <iframe 
-        id="map-builder-iframe"
-        src="https://shopify-map-builder.vercel.app?product={{ product.selected_or_first_available_variant.id }}&store={{ shop.permanent_domain }}"
-        style="width: 100%; height: 800px; border: none; border-radius: 12px;"
-        allow="geolocation">
-      </iframe>
-    </div>
-
-    <!-- Product Information Sidebar -->
-    <div class="product-sidebar">
-      <div class="price-section">
-        <div class="price">
-          {% if product.compare_at_price > product.price %}
-            <span class="price-compare">${{ product.compare_at_price | money_without_currency }}</span>
-          {% endif %}
-          <span class="price-current">${{ product.price | money_without_currency }}</span>
-        </div>
+  <div class="product-header">
+    <h1 class="product-title">{{ product.title }}</h1>
+    {% if product.description != blank %}
+      <div class="product-description">
+        {{ product.description }}
       </div>
+    {% endif %}
+  </div>
+
+  <!-- Map Builder Integration - Full Width -->
+  <div class="map-builder-container">
+    <iframe 
+      id="map-builder-iframe"
+      src="https://shopify-map-builder.vercel.app?product={{ product.selected_or_first_available_variant.id }}&store={{ shop.permanent_domain }}"
+      style="width: 100%; height: 800px; border: none;"
+      allow="geolocation">
+    </iframe>
+  </div>
+
+  <!-- Product Information Sidebar -->
+  <div class="product-sidebar">
+    <div class="price-section">
+      <div class="price">
+        {% if product.compare_at_price > product.price %}
+          <span class="price-compare">${{ product.compare_at_price | money_without_currency }}</span>
+        {% endif %}
+        <span class="price-current">${{ product.price | money_without_currency }}</span>
+      </div>
+    </div>
 
       <div class="product-features">
         <h3>What's Included:</h3>
@@ -127,14 +126,15 @@ function showNotification(message, type = 'info') {
 
 <style>
 .product-custom-map {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .product-header {
   text-align: center;
   margin-bottom: 40px;
+  padding: 0 20px;
 }
 
 .product-title {
@@ -153,17 +153,25 @@ function showNotification(message, type = 'info') {
 }
 
 .map-builder-container {
-  margin: 40px 0;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  border-radius: 12px;
-  overflow: hidden;
+  margin: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.map-builder-container iframe {
+  display: block;
+  width: 100%;
+  border: none;
 }
 
 .product-sidebar {
   background: #f8f9fa;
   padding: 30px;
+  margin: 40px 20px 0;
   border-radius: 12px;
-  margin-top: 40px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .price-section {

@@ -4,25 +4,23 @@ File: sections/custom-map-builder.liquid
 {% endcomment %}
 
 <div class="map-builder-section" data-section-id="{{ section.id }}">
-  <div class="container">
-    {% if section.settings.heading != blank %}
-      <h2 class="map-builder-heading">{{ section.settings.heading }}</h2>
-    {% endif %}
-    
-    {% if section.settings.description != blank %}
-      <div class="map-builder-description">
-        {{ section.settings.description }}
-      </div>
-    {% endif %}
+  {% if section.settings.heading != blank %}
+    <h2 class="map-builder-heading">{{ section.settings.heading }}</h2>
+  {% endif %}
+  
+  {% if section.settings.description != blank %}
+    <div class="map-builder-description">
+      {{ section.settings.description }}
+    </div>
+  {% endif %}
 
-    <!-- Map Builder App Container -->
-    <div id="shopify-map-builder" 
-         data-store="{{ shop.permanent_domain }}"
-         data-variant-id="{{ section.settings.product_variant_id }}"
-         style="min-height: 600px;">
-      <div class="loading-placeholder">
-        <p>Loading Map Builder...</p>
-      </div>
+  <!-- Map Builder App Container - Full Width -->
+  <div id="shopify-map-builder" 
+       data-store="{{ shop.permanent_domain }}"
+       data-variant-id="{{ section.settings.product_variant_id }}"
+       style="min-height: 600px; width: 100%;">
+    <div class="loading-placeholder">
+      <p>Loading Map Builder...</p>
     </div>
   </div>
 </div>
@@ -84,20 +82,37 @@ File: sections/custom-map-builder.liquid
 
 <style>
   .map-builder-section {
-    padding: 40px 0;
+    padding: 0;
+    width: 100%;
+    max-width: none;
   }
   
   .map-builder-heading {
     text-align: center;
-    margin-bottom: 20px;
+    margin: 20px 0;
+    padding: 0 20px;
     font-size: 2rem;
     font-weight: bold;
   }
   
   .map-builder-description {
     text-align: center;
-    margin-bottom: 30px;
+    margin: 0 auto 30px;
+    padding: 0 20px;
+    max-width: 600px;
     color: #666;
+  }
+  
+  #shopify-map-builder {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  #shopify-map-builder iframe {
+    width: 100%;
+    border: none;
+    display: block;
   }
   
   .loading-placeholder {
@@ -106,7 +121,7 @@ File: sections/custom-map-builder.liquid
     align-items: center;
     height: 400px;
     background: #f8f9fa;
-    border-radius: 8px;
+    width: 100%;
   }
   
   .map-builder-success {
