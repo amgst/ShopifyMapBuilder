@@ -125,7 +125,7 @@ export default function InteractiveMap({ className }: InteractiveMapProps) {
   const olMapRef = useRef<Map | null>(null);
   const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const { state, updateLocation } = useMapBuilder();
-  const [currentTileSource] = useState<string>('osm'); // Use OSM which has better CORS support for export
+  const [currentTileSource] = useState<string>('osm'); // Use OSM which loads reliably
 
   useEffect(() => {
     if (!mapRef.current || olMapRef.current) return;

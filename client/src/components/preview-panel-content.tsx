@@ -38,12 +38,13 @@ export default function PreviewPanelContent() {
       // Get map size for export
       const mapSize = mapInstance.getSize() || [800, 600];
       
-      const result = await exportMapImage(
-        mapInstance, 
-        mapSize,
+      const result = await exportMapImage(mapElement, {
         orderId,
-        `Order${orderId}`
-      );
+        targetSize: 15,
+        minSize: 8,
+        maxSize: 30,
+        shopifyOrderNumber: `Order${orderId}`
+      });
 
       // Download the image
       downloadImage(result.blob, result.filename);

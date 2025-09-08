@@ -1,4 +1,5 @@
 import { Map } from 'ol';
+import html2canvas from 'html2canvas';
 
 export interface ExportResult {
   blob: Blob;
@@ -46,48 +47,36 @@ export function exportMapCanvas(
 
           console.log(`Map canvas created: ${mapCanvas.width}x${mapCanvas.height}`);
 
-          // Official OpenLayers canvas export approach
-          Array.prototype.forEach.call(
-            mapInstance.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer'),
-            function (canvas: HTMLCanvasElement) {
-              if (canvas.width > 0) {
+          // Simplified canvas export approach - draw directly without transforms
+          const canvases = mapInstance.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer');
+          console.log(`Found ${canvases.length} canvas elements to export`);
+          
+          let canvasDrawn = 0;
+          Array.prototype.forEach.call(canvases, function (canvas: HTMLCanvasElement) {
+            if (canvas.width > 0 && canvas.height > 0) {
+              console.log(`Processing canvas ${canvasDrawn + 1}: ${canvas.width}x${canvas.height}`);
+              
+              try {
+                // Test if canvas is tainted by CORS
+                canvas.toDataURL('image/png', 0.1);
+                
+                // If we get here, canvas is not tainted - draw it
                 const opacity = (canvas.parentNode as HTMLElement)?.style.opacity || canvas.style.opacity;
                 mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
                 
-                let matrix: number[];
-                const transform = canvas.style.transform;
-                if (transform) {
-                  // Get the transform parameters from the style's transform matrix
-                  const matches = transform.match(/^matrix\(([^\(]*)\)$/);
-                  if (matches) {
-                    matrix = matches[1].split(',').map(Number);
-                  } else {
-                    matrix = [1, 0, 0, 1, 0, 0];
-                  }
-                } else {
-                  matrix = [
-                    parseFloat(canvas.style.width) / canvas.width || 1,
-                    0,
-                    0,
-                    parseFloat(canvas.style.height) / canvas.height || 1,
-                    0,
-                    0,
-                  ];
-                }
-                
-                // Apply the transform to the export map context
-                mapContext.setTransform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
-                
-                const backgroundColor = (canvas.parentNode as HTMLElement)?.style.backgroundColor;
-                if (backgroundColor) {
-                  mapContext.fillStyle = backgroundColor;
-                  mapContext.fillRect(0, 0, canvas.width, canvas.height);
-                }
+                // Draw canvas directly without complex transforms
                 mapContext.drawImage(canvas, 0, 0);
-                console.log(`Drew canvas: ${canvas.width}x${canvas.height} with opacity ${opacity || 1}`);
+                canvasDrawn++;
+                console.log(`Successfully drew canvas ${canvasDrawn}: ${canvas.width}x${canvas.height}`);
+              } catch (e) {
+                console.warn(`Canvas ${canvasDrawn + 1} is tainted by CORS and cannot be exported:`, e);
               }
             }
-          );
+          });
+          
+          if (canvasDrawn === 0) {
+            console.warn('No valid canvases could be drawn - all may be tainted by CORS');
+          }
           
           mapContext.globalAlpha = 1;
           mapContext.setTransform(1, 0, 0, 1, 0, 0);
@@ -260,7 +249,73 @@ export function downloadImage(blob: Blob, filename: string): void {
 }
 
 /**
- * Legacy export name for compatibility
- * @deprecated Use exportMapCanvas instead
+ * Simple HTML2Canvas export - bypasses CORS issues
  */
-export const exportMapImage = exportMapCanvas;
+export function exportMapHTML2Canvas(
+  mapElement: HTMLElement,
+  options: {
+    orderId: string;
+    targetSize?: number;
+    minSize?: number; 
+    maxSize?: number;
+    shopifyOrderNumber?: string;
+  }
+): Promise<ExportResult> {
+  const pixelRatio = 3; // 3x for 300 DPI
+  
+  console.log('Starting HTML2Canvas export - bypassing CORS issues');
+
+  return new Promise((resolve, reject) => {
+    html2canvas(mapElement, {
+      scale: pixelRatio,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: mapElement.offsetWidth,
+      height: mapElement.offsetHeight
+    }).then(canvas => {
+      console.log(`HTML2Canvas export complete: ${canvas.width}x${canvas.height}`);
+      
+      // Create data URL (skip black/white conversion for now)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      console.log(`Data URL length: ${dataUrl.length} characters`);
+      
+      // Convert to blob
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      
+      const arrayBuffer = new ArrayBuffer(byteString.length);
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      for (let i = 0; i < byteString.length; i++) {
+        uint8Array[i] = byteString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([arrayBuffer], { type: mimeString });
+      const sizeInMB = blob.size / (1024 * 1024);
+      
+      console.log(`Final export: ${blob.size} bytes (${sizeInMB.toFixed(1)}MB)`);
+      
+      // Generate filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = options.shopifyOrderNumber 
+        ? `${options.shopifyOrderNumber}_Map.jpeg`
+        : `${options.orderId}_Map_${timestamp}.jpeg`;
+
+      resolve({
+        blob,
+        dataUrl,
+        filename,
+        sizeInMB
+      });
+    }).catch(error => {
+      console.error('HTML2Canvas export failed:', error);
+      reject(new Error(`Export failed: ${error.message}`));
+    });
+  });
+}
+
+/**
+ * Legacy export name for compatibility - now uses HTML2Canvas
+ */
+export const exportMapImage = exportMapHTML2Canvas;
