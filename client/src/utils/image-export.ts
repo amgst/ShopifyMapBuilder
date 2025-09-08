@@ -92,21 +92,13 @@ export async function exportMapImage(
 
   return new Promise((resolve, reject) => {
     try {
-      // Find the OpenLayers map instance
-      const mapDiv = mapElement.querySelector('.ol-viewport') || mapElement;
-      
-      if (!mapDiv) {
-        reject(new Error('OpenLayers map not found. Please make sure the map is loaded.'));
-        return;
-      }
-
       console.log(`Starting high-quality map export at ${pixelRatio}x resolution for 300 DPI output`);
 
-      // Use the OpenLayers rendercomplete event for proper export
-      const mapInstance = (mapDiv as any).__ol_map__ || (window as any).olMap;
+      // Find the OpenLayers map instance more reliably
+      const mapInstance = (mapElement as any).__ol_map__ || (window as any).olMap;
       
       if (!mapInstance) {
-        reject(new Error('OpenLayers map instance not found.'));
+        reject(new Error('OpenLayers map instance not found. Please make sure the map is loaded.'));
         return;
       }
 
@@ -138,12 +130,15 @@ export async function exportMapImage(
           mapContext.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
 
           // Get all map canvas layers using the official OpenLayers approach
-          const mapViewport = mapDiv.querySelector('.ol-viewport') as HTMLElement;
+          // Try multiple selectors to find the viewport
+          let mapViewport = mapElement.querySelector('.ol-viewport') as HTMLElement;
+          
           if (!mapViewport) {
-            reject(new Error('Could not find map viewport.'));
-            return;
+            // Fallback: look for the map container itself
+            mapViewport = mapElement;
           }
-          const canvases = mapViewport.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
+          
+          const canvases = mapViewport.querySelectorAll('.ol-layer canvas, canvas.ol-layer, canvas');
           
           console.log(`Found ${canvases.length} map canvas layers to combine`);
 
@@ -202,8 +197,9 @@ export async function exportMapImage(
           exportContext.setTransform(1, 0, 0, 1, 0, 0);
 
           // Add text elements
-          textElements.forEach((textEl: HTMLElement) => {
-            const rect = textEl.getBoundingClientRect();
+          textElements.forEach((textEl: Element) => {
+            const htmlEl = textEl as HTMLElement;
+            const rect = htmlEl.getBoundingClientRect();
             const mapRect = mapElement.getBoundingClientRect();
             
             const x = (rect.left - mapRect.left) * pixelRatio;
@@ -212,7 +208,7 @@ export async function exportMapImage(
             exportContext.fillStyle = '#000000';
             exportContext.font = `bold ${14 * pixelRatio}px Arial`;
             exportContext.textAlign = 'center';
-            exportContext.fillText(textEl.textContent || '', x, y);
+            exportContext.fillText(htmlEl.textContent || '', x, y);
           });
 
           console.log('Converting to black and white for engraving...');
