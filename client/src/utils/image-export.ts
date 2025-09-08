@@ -103,7 +103,7 @@ export async function exportMapImage(
       }
 
       // Wait for all tiles to load, then export
-      mapInstance.once('rendercomplete', function () {
+      const exportMap = function () {
         try {
           console.log('Map render complete, starting canvas export...');
           
@@ -268,11 +268,53 @@ export async function exportMapImage(
           console.error('Error during canvas export:', error);
           reject(new Error(`Failed to export map canvas: ${error instanceof Error ? error.message : 'Unknown error'}`));
         }
+      };
+
+      // Check if tiles are already loaded
+      let tilesLoading = 0;
+      let tilesLoaded = 0;
+      let allTilesLoaded = false;
+
+      const checkTileStatus = () => {
+        console.log(`Tile status: ${tilesLoaded}/${tilesLoading} loaded`);
+        if (tilesLoaded >= tilesLoading && tilesLoading > 0) {
+          allTilesLoaded = true;
+          console.log('All tiles loaded, proceeding with export...');
+          setTimeout(exportMap, 100); // Small delay to ensure rendering is complete
+        }
+      };
+
+      // Listen for tile loading events
+      mapInstance.getLayers().forEach((layer: any) => {
+        if (layer.getSource && typeof layer.getSource === 'function') {
+          const source = layer.getSource();
+          if (source && source.on) {
+            source.on('tileloadstart', () => {
+              tilesLoading++;
+            });
+            source.on('tileloadend', () => {
+              tilesLoaded++;
+              checkTileStatus();
+            });
+            source.on('tileloaderror', () => {
+              tilesLoaded++;
+              checkTileStatus();
+            });
+          }
+        }
       });
 
-      // Trigger the render
+      // Trigger the render and set a fallback timeout
       console.log('Triggering map render for export...');
       mapInstance.renderSync();
+      
+      // Fallback: if no tiles are detected as loading after 1 second, proceed anyway
+      setTimeout(() => {
+        if (!allTilesLoaded) {
+          console.log('Timeout reached, proceeding with export regardless of tile status...');
+          exportMap();
+        }
+      }, 1000);
 
     } catch (error) {
       console.error('Error setting up map export:', error);
