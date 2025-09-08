@@ -24,33 +24,7 @@ File: templates/product.custom-map.liquid
   </div>
 
   <!-- Product Information Sidebar -->
-  <div class="product-sidebar">
-    <div class="price-section">
-      <div class="price">
-        {% if product.compare_at_price > product.price %}
-          <span class="price-compare">${{ product.compare_at_price | money_without_currency }}</span>
-        {% endif %}
-        <span class="price-current">${{ product.price | money_without_currency }}</span>
-      </div>
-    </div>
 
-      <div class="product-features">
-        <h3>What's Included:</h3>
-        <ul>
-          <li>✨ Custom location selection</li>
-          <li>📝 Personalized text and labels</li>
-          <li>🧭 Optional compass decoration</li>
-          <li>🎨 Multiple style options</li>
-          <li>📏 Various size options</li>
-          <li>🖼️ High-quality print ready (300 DPI)</li>
-        </ul>
-      </div>
-
-      <div class="guarantee-section">
-        <h4>🛡️ Our Guarantee</h4>
-        <p>30-day money back guarantee. Free shipping on orders over $50.</p>
-      </div>
-    </div>
   </div>
 </div>
 
