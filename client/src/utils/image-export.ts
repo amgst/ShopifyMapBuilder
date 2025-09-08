@@ -174,7 +174,6 @@ export async function exportMapImage(
       windowHeight: actualHeight,
       // Force high-quality rendering
       proxy: undefined,
-      taintTest: false,
       ignoreElements: (element): boolean => {
         // Skip problematic elements during render
         const hasControlClass = element.classList.contains('ol-control') || 
