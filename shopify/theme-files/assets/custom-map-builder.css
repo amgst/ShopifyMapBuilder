@@ -32,20 +32,22 @@ Add this to your theme's assets folder
   100% { transform: rotate(360deg); }
 }
 
-/* Map Builder Container */
+/* Map Builder Container - Full Width */
 .map-builder-widget {
   position: relative;
   background: white;
   overflow: hidden;
-  margin: 0;
-  width: 100%;
-  max-width: none;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .map-builder-widget iframe {
   display: block;
-  width: 100%;
+  width: 100% !important;
   border: none;
+  max-width: none !important;
 }
 
 /* Notifications */
@@ -109,18 +111,22 @@ Add this to your theme's assets folder
   }
 }
 
-/* Section Styles */
+/* Section Styles - Full Width */
 .map-builder-section {
-  padding: 0;
-  width: 100%;
-  max-width: none;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  overflow-x: hidden;
 }
 
-.map-builder-section .container {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0;
+.map-builder-section .container,
+.map-builder-section .page-width,
+.map-builder-section .wrapper {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .map-builder-heading {
@@ -142,15 +148,19 @@ Add this to your theme's assets folder
   line-height: 1.6;
 }
 
-/* Product Page Integration */
+/* Product Page Integration - Full Width */
 .product-map-builder {
-  margin: 0;
-  width: 100%;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .product-map-builder .map-builder-widget {
-  margin: 0;
-  width: 100%;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 /* Success Message */
@@ -181,11 +191,12 @@ Add this to your theme's assets folder
   color: white;
 }
 
-/* Responsive Design */
+/* Responsive Design - Full Width on All Devices */
 @media (max-width: 768px) {
   .map-builder-section {
-    padding: 0;
-    width: 100%;
+    padding: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
   
   .map-builder-heading {
@@ -199,7 +210,8 @@ Add this to your theme's assets folder
   
   .map-builder-widget iframe {
     min-height: 600px;
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
   }
   
   .map-builder-notification {
@@ -218,7 +230,8 @@ Add this to your theme's assets folder
 @media (max-width: 480px) {
   .map-builder-widget iframe {
     min-height: 500px;
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
   }
   
   .map-builder-heading {
@@ -232,20 +245,35 @@ Add this to your theme's assets folder
     margin: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    max-width: none !important;
   }
 }
 
-/* Theme-specific overrides */
+/* Theme-specific overrides - Force 100% width */
 .shopify-section .map-builder-widget {
-  margin: 0;
-  width: 100%;
-  max-width: none;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .shopify-section .map-builder-section {
-  padding: 0;
-  width: 100%;
-  max-width: none;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+/* Override common Shopify theme containers */
+.shopify-section .map-builder-section .container,
+.shopify-section .map-builder-section .page-width,
+.shopify-section .map-builder-section .wrapper,
+.shopify-section .map-builder-section .grid,
+.shopify-section .map-builder-section .row {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Remove any container constraints */
@@ -256,6 +284,18 @@ Add this to your theme's assets folder
   max-width: none !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Full viewport width if needed */
+.map-builder-full-width {
+  width: 100vw !important;
+  position: relative;
+  left: 50% !important;
+  right: 50% !important;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
 }
 
 /* Loading placeholder specific styles */

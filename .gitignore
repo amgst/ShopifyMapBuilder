@@ -71,8 +71,10 @@ jspm_packages/
 *.db
 *.sqlite
 
-# Shopify
+# Shopify CLI cache (ignore)
 .shopify/
+
+# Note: shopify/ directory contains theme integration files and should be tracked
 
 # Generated images
 public/images/

@@ -82,9 +82,11 @@ File: sections/custom-map-builder.liquid
 
 <style>
   .map-builder-section {
-    padding: 0;
-    width: 100%;
-    max-width: none;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow-x: hidden;
   }
   
   .map-builder-heading {
@@ -104,15 +106,17 @@ File: sections/custom-map-builder.liquid
   }
   
   #shopify-map-builder {
-    width: 100%;
-    margin: 0;
-    padding: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
   }
   
   #shopify-map-builder iframe {
-    width: 100%;
+    width: 100% !important;
     border: none;
     display: block;
+    max-width: none !important;
   }
   
   .loading-placeholder {
@@ -121,7 +125,7 @@ File: sections/custom-map-builder.liquid
     align-items: center;
     height: 400px;
     background: #f8f9fa;
-    width: 100%;
+    width: 100% !important;
   }
   
   .map-builder-success {
@@ -156,6 +160,19 @@ File: sections/custom-map-builder.liquid
   
   .btn-primary:hover {
     background-color: #0056b3;
+  }
+  
+  /* Force full width by overriding theme containers */
+  .shopify-section .map-builder-section,
+  .shopify-section .map-builder-section .container,
+  .shopify-section .map-builder-section .page-width,
+  .shopify-section .map-builder-section .wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 </style>
 
