@@ -139,52 +139,39 @@ export async function exportMapImage(
 
           // Get all map canvas layers using the official OpenLayers approach
           const mapViewport = mapDiv.querySelector('.ol-viewport') as HTMLElement;
+          if (!mapViewport) {
+            reject(new Error('Could not find map viewport.'));
+            return;
+          }
           const canvases = mapViewport.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
           
           console.log(`Found ${canvases.length} map canvas layers to combine`);
 
           // Composite all canvas layers (official OpenLayers export method)
+          let canvasCount = 0;
           Array.prototype.forEach.call(canvases, function (canvas: HTMLCanvasElement) {
-            if (canvas.width > 0) {
-              const opacity = (canvas.parentNode as HTMLElement)?.style.opacity || canvas.style.opacity;
-              mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
-              
-              let matrix;
-              const transform = canvas.style.transform;
-              
-              if (transform) {
-                // Get the transform parameters from the style's transform matrix
-                const matches = transform.match(/^matrix\(([^\(]*)\)$/);
-                if (matches) {
-                  matrix = matches[1].split(',').map(Number);
-                }
+            if (canvas.width > 0 && canvas.height > 0) {
+              try {
+                canvasCount++;
+                const opacity = (canvas.parentNode as HTMLElement)?.style.opacity || canvas.style.opacity;
+                mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+                
+                // Simplified approach - just draw directly without complex transforms
+                mapContext.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, mapCanvas.width, mapCanvas.height);
+                
+                console.log(`Drew canvas ${canvasCount}: ${canvas.width}x${canvas.height}`);
+              } catch (canvasError) {
+                console.error('Error drawing canvas:', canvasError);
               }
-              
-              if (!matrix) {
-                matrix = [
-                  parseFloat(canvas.style.width) / canvas.width || 1,
-                  0,
-                  0,
-                  parseFloat(canvas.style.height) / canvas.height || 1,
-                  0,
-                  0,
-                ];
-              }
-
-              // Apply the transform to the export map context
-              mapContext.setTransform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
-              
-              // Handle background color if present
-              const backgroundColor = (canvas.parentNode as HTMLElement)?.style.backgroundColor;
-              if (backgroundColor) {
-                mapContext.fillStyle = backgroundColor;
-                mapContext.fillRect(0, 0, canvas.width, canvas.height);
-              }
-              
-              // Draw the canvas
-              mapContext.drawImage(canvas, 0, 0);
             }
           });
+          
+          console.log(`Successfully drew ${canvasCount} canvas layers`);
+          
+          if (canvasCount === 0) {
+            reject(new Error('No valid canvas layers found to export.'));
+            return;
+          }
 
           // Reset context transformations
           mapContext.globalAlpha = 1;
@@ -274,7 +261,7 @@ export async function exportMapImage(
 
         } catch (error) {
           console.error('Error during canvas export:', error);
-          reject(new Error('Failed to export map canvas.'));
+          reject(new Error(`Failed to export map canvas: ${error instanceof Error ? error.message : 'Unknown error'}`));
         }
       });
 
@@ -284,7 +271,7 @@ export async function exportMapImage(
 
     } catch (error) {
       console.error('Error setting up map export:', error);
-      reject(new Error('Failed to set up map export.'));
+      reject(new Error(`Failed to set up map export: ${error instanceof Error ? error.message : 'Unknown error'}`));
     }
   });
 }
